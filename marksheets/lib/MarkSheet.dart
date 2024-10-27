@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 int numCellRows = 50;  //表示する行数
 int numMarks = 10; //マークの数
-int currentMarks = 1;
 
 class Marksheet extends StatefulWidget {
   const Marksheet({super.key, required this.title});
