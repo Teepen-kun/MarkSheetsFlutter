@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 int numCellRows = 50;  //表示する行数
-int numMarks = 10; //マークの数
+int numMarks = 10; //各解答番号（各行）ごとのマークの数
 
 class Marksheet extends StatefulWidget {
   const Marksheet({super.key, required this.title});
@@ -13,27 +13,46 @@ class Marksheet extends StatefulWidget {
 }
 
 class _Marksheet extends State<Marksheet> {
-
+  //各回答ごとのマーク
   List<List<Color>> markColors = List.generate(
     numCellRows, 
     (indexCellRows) => List.generate(numMarks, (indexMarks) => Colors.white)); 
+  
+  //各問題の現在の選択．1つの回答欄行に複数選択するのを防ぐため必要．
+  List<int?> selectedMark = List.generate(numMarks,(index) => null);
+
   // MarkBoxセル生成
-  List<Widget> buildMarkBox(int indexMarks) {
+  List<Widget> buildMarkBox(int indexCellRow) {
     return List.generate(numMarks, (index) {
       return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 2.0),
         child: GestureDetector(
           onTap: (){
             setState(() {
-              markColors[indexMarks][index] = (markColors[indexMarks][index] == Colors.white) ? Colors.black38 : Colors.white;
+              if(selectedMark[indexCellRow] == index){
+                markColors[indexCellRow][index] = Colors.white;
+                selectedMark[indexCellRow] = null;
+              }else {
+                if(selectedMark[indexCellRow] != null){
+                markColors[indexCellRow][selectedMark[indexCellRow]!] = Colors.white;
+              }
+              markColors[indexCellRow][index] = Colors.black45;
+              selectedMark[indexCellRow] = index;
+              }
             });
           },
-          child: CircleAvatar(
-            radius: 10,
-            backgroundColor: markColors[indexMarks][index],
-            child: Text(
-              '$index',
-              style: TextStyle(fontSize: 10.5, color: Colors.blue),
+          child: Container(
+            decoration: BoxDecoration(
+             shape: BoxShape.circle,
+             border: Border.all(color: Colors.black38 ),
+            ),
+            child: CircleAvatar(
+              radius: 10,
+              backgroundColor: markColors[indexCellRow][index],
+              child: Text(
+                '$index',
+                style: TextStyle(fontSize: 10.5, color: Colors.black87),
+              ),
             ),
           ),
         ),
