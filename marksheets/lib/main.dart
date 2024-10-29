@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'MarkSheet.dart';
+import 'SettingScreen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -13,11 +13,10 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'MarkSheetsApp',
       theme: ThemeData(
-      
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const Marksheet(title: '',),
+      home: const SettingScreen(),
     );
   }
 }

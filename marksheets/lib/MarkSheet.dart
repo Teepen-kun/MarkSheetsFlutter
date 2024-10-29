@@ -1,26 +1,38 @@
 import 'package:flutter/material.dart';
 
-int numCellRows = 50;  //表示する行数
+
 int numMarks = 10; //各解答番号（各行）ごとのマークの数
 
 class Marksheet extends StatefulWidget {
-  const Marksheet({super.key, required this.title});
+  const Marksheet({
+    super.key, 
+    required this.title,
+    required this.numCellRows
+    });
 
   final String title;
+  final int numCellRows; //表示する行数
 
   @override
   State<Marksheet> createState() => _Marksheet();
 }
 
 class _Marksheet extends State<Marksheet> {
+
   //各回答ごとのマーク
-  List<List<Color>> markColors = List.generate(
-    numCellRows, 
+  late List<List<Color>> markColors;
+  late List<int?> selectedMark;
+
+  @override 
+  void initState(){ //widgetプロパティを使うため
+  super.initState();
+  markColors = List.generate(
+    widget.numCellRows, 
     (indexCellRows) => List.generate(numMarks, (indexMarks) => Colors.white)); 
   
   //各問題の現在の選択．1つの回答欄行に複数選択するのを防ぐため必要．
-  List<int?> selectedMark = List.generate(numMarks,(index) => null);
-
+  selectedMark = List.generate(widget.numCellRows,(index) => null);
+  }
   // MarkBoxセル生成
   List<Widget> buildMarkBox(int indexCellRow) {
     return List.generate(numMarks, (index) {
@@ -63,7 +75,7 @@ class _Marksheet extends State<Marksheet> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('MarkSheet')),
+      appBar: AppBar(title: Text(widget.title)),
       body: SingleChildScrollView(
         scrollDirection: Axis.vertical,
         child: Padding(
@@ -73,7 +85,7 @@ class _Marksheet extends State<Marksheet> {
             columnWidths: const{
               0: FixedColumnWidth(40)
             },
-            children: List.generate(numCellRows, (index) {
+            children: List.generate(widget.numCellRows, (index) {
               final Color rowColor = (index % 2 == 0) ? Colors.grey[200]! : Colors.white; //行ごとに少し色変える
               return TableRow(
                 decoration: BoxDecoration(
