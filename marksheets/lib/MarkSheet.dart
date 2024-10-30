@@ -55,8 +55,8 @@ class _Marksheet extends State<Marksheet> {
           },
           child: Container(
             decoration: BoxDecoration(
-             shape: BoxShape.circle,
-             border: Border.all(color: Colors.black38 ),
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.black38 ),
             ),
             child: CircleAvatar(
               radius: 10,
