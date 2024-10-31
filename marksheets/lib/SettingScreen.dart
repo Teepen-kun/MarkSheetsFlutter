@@ -18,6 +18,7 @@ class _SettingScreen extends State<SettingScreen>{
   int _timeLimitHour = 1; // 選択された時間
   int _timeLimitMinute = 0; //分
   int _timeLimitSecond = 0; //秒
+
   @override
   void dispose() {
       _marksheetnameController.dispose(); // メモリリークを防ぐためにdisposeする...必要性はあとで考える
@@ -113,15 +114,21 @@ class _SettingScreen extends State<SettingScreen>{
             onPressed: (){
               int numberOfQuestions =  int.tryParse(_numberofquestionController.text)  ??  1 ;
               if(numberOfQuestions <= 0) numberOfQuestions = 1;
+
+              int _TimeLimit = 3600*_timeLimitHour + 60*_timeLimitMinute + _timeLimitSecond;//設定時間（秒）
               Navigator.push(
                 context,
                 MaterialPageRoute(
                     builder: (context) => Marksheet(
                     title: _marksheetnameController.text,
                     numCellRows: numberOfQuestions,
+                    timelimit: _TimeLimit,
                     ),
                 )
               );
+
+              
+
             },
           )
 
@@ -151,7 +158,7 @@ class _SettingScreen extends State<SettingScreen>{
                           selectedTextStyle: TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,  
-                              color: Colors.blue,  
+                              color: Colors.black,  
                           ),
                           
                         ),               
