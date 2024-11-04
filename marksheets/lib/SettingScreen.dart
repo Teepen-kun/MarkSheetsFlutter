@@ -20,7 +20,7 @@ class _SettingScreen extends State<SettingScreen>{
   int _timeLimitSecond = 0; //秒
   String selectedMarkType = 'A-Z'; // デフォルトは 'A-Z'
   final List<String> markTypes = ['a-z', 'A-Z', '0-9', '+-', 'あ-ん', 'ア-ン'];
-  List<String> selectedMarkTypes = [];
+  List<String> selectedMarkTypes = ['1','2','3','4'];
 
   @override
   void dispose() {
@@ -111,7 +111,10 @@ class _SettingScreen extends State<SettingScreen>{
               ),
             SizedBox(height: 20),
           
-          buildMarkTypeSelector(selectedMarkTypes),      
+            ElevatedButton(
+              onPressed: () => _showMarkSelectDialog(selectedMarkTypes),
+              child: Text("Select Mark Types"),
+            ),   
 
           //設定完了！！！！！！
           ElevatedButton(
@@ -171,14 +174,15 @@ class _SettingScreen extends State<SettingScreen>{
                     ],
                   );
   }
-  // マークタイプ選択のUI
-Widget buildMarkTypeSelector(List<String> selectedMarkTypes) {
+
+  //使用するマークをダイアログ上で選択
+  void _showMarkSelectDialog(List<String> selectedMarkTypes){
   // 選択可能なマークタイプ一覧
-  List<String> markTypes_PlusMinus = ['+', '-', '±'];
-  List<String> markTypes_Number = List.generate(10, (index) => String.fromCharCode('0'.codeUnitAt(0) + index));
-  List<String> markTypes_A2Z = List.generate(26, (index) => String.fromCharCode('A'.codeUnitAt(0) + index));
-  List<String> markTypes_a2z = List.generate(26, (index) => String.fromCharCode('a'.codeUnitAt(0) + index));
-  List<String> markTypes_Hiragana = [
+  List<String> markCategory_PlusMinus = ['+', '-', '±'];
+  List<String> markCategory_Number = List.generate(10, (index) => String.fromCharCode('0'.codeUnitAt(0) + index));
+  List<String> markCategory_A2Z = List.generate(26, (index) => String.fromCharCode('A'.codeUnitAt(0) + index));
+  List<String> markCategory_a2z = List.generate(26, (index) => String.fromCharCode('a'.codeUnitAt(0) + index));
+  List<String> markCategory_Hiragana = [
   'あ', 'い', 'う', 'え', 'お', 
   'か', 'き', 'く', 'け', 'こ',
   'さ', 'し', 'す', 'せ', 'そ',
@@ -190,7 +194,7 @@ Widget buildMarkTypeSelector(List<String> selectedMarkTypes) {
   'ら', 'り', 'る', 'れ', 'ろ',
   'わ',             'を', 'ん'
 ];
-List<String> markTypes_Katakana = [
+List<String> markCategory_Katakana = [
   'ア', 'イ', 'ウ', 'エ', 'オ', 
   'カ', 'キ', 'ク', 'ケ', 'コ',
   'サ', 'シ', 'ス', 'セ', 'ソ',
@@ -203,51 +207,118 @@ List<String> markTypes_Katakana = [
   'ワ',             'ヲ', 'ン'
 ];
 
-  List<String> markTypes = [
-  ...markTypes_PlusMinus,
-  ...markTypes_Number,
-  ...markTypes_A2Z,
-  ...markTypes_a2z,
-  ...markTypes_Hiragana,
-  ...markTypes_Katakana,
+final List<String> markAllCategories = [
+  ...markCategory_PlusMinus,
+  ...markCategory_Number,
+  ...markCategory_A2Z,
+  ...markCategory_a2z,
+  ...markCategory_Hiragana,
+  ...markCategory_Katakana,
 ];
 
-    return Wrap(
-      spacing: 8.0,
-      children: List.generate(markTypes.length, (index) {
-        return GestureDetector(
-          onTap: () {
-            print('Tapped: ${markTypes[index]}');
-            setState(() {
-              // タップ時にリストへ追加・削除
-              if (selectedMarkTypes.contains(markTypes[index])) {
-                selectedMarkTypes.remove(markTypes[index]);
-              } else {
-                selectedMarkTypes.add(markTypes[index]);
-              }
-              selectedMarkTypes.sort((a, b) {
-              int groupA = _getMarkTypeGroup(a);
-              int groupB = _getMarkTypeGroup(b);
-              if (groupA == groupB) {
-                return a.compareTo(b); // 同じグループ内での通常のソート
-              }
-              return groupA.compareTo(groupB); // グループ間でのソート
-              });
-            });    
-            print(selectedMarkTypes);
-          },
-          child: CircleAvatar(
-            backgroundColor: selectedMarkTypes.contains(markTypes[index])
-                ? Colors.blue
-                : Colors.grey,
-            radius: 10,  
-            child: Text(markTypes[index], style: TextStyle(color: Colors.white, fontSize: 12)),            
+  showDialog(
+    context: context,
+    builder: (context) {
+      return AlertDialog(
+        title: Text("選択肢の編集"),
+        content: Container(
+          width : 300,
+          child: SingleChildScrollView(
+            child: StatefulBuilder(
+              builder: (BuildContext context, StateSetter SBsetState) {
+            
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text("選択中のマーク"),
+                    Wrap(
+                      spacing: 8.0,
+                      children: 
+                        List.generate(selectedMarkTypes.length, (index) =>CircleAvatar(
+                        backgroundColor:Colors.grey,
+                        radius: 10,
+                        child: Text(
+                          selectedMarkTypes[index],
+                          style: TextStyle(color: Colors.white, fontSize: 12),
+                        ),),
+                    ),
+                    ),
+                    SizedBox(height: 10),
+                    SelectMarksbyTypes('記号（数学）', markCategory_PlusMinus, selectedMarkTypes, SBsetState),
+                    SelectMarksbyTypes('数字', markCategory_Number, selectedMarkTypes, SBsetState),
+                    SelectMarksbyTypes('A-Z', markCategory_A2Z, selectedMarkTypes, SBsetState),
+                    SelectMarksbyTypes('a-z', markCategory_a2z, selectedMarkTypes, SBsetState),
+                    SelectMarksbyTypes('あ-ん', markCategory_Hiragana, selectedMarkTypes, SBsetState),
+                    SelectMarksbyTypes('ア-ン', markCategory_Katakana, selectedMarkTypes, SBsetState),
+            
+                  ],
+                );
+            
+              },
+            ),
           ),
-        );
-      }),
-    );
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text("OK"),
+          ),
+        ],
+      );
+    },
+  );
   }
+
+ExpansionTile SelectMarksbyTypes(String title, List<String> MarkCategory, List<String> selectedMarkTypes, StateSetter SBsetState){
+
+              return ExpansionTile(
+              title: Text(title),
+              children: [
+                Wrap(
+                  spacing: 8.0,
+                  children: List.generate(MarkCategory.length, (index) {
+                    final String mark = MarkCategory[index];
+                    final bool isSelected = selectedMarkTypes.contains(mark);
+
+                    return GestureDetector(
+                      onTap: () {
+                        SBsetState(() {
+                          if (isSelected) {
+                            selectedMarkTypes.remove(mark);
+                          } else {
+                            selectedMarkTypes.add(mark);
+                          }
+                          print(selectedMarkTypes);
+
+                          // マークの種類ごとに並び替え
+                          selectedMarkTypes.sort((a, b) {
+                            int groupA = _getMarkTypeGroup(a);
+                            int groupB = _getMarkTypeGroup(b);
+                            return groupA == groupB
+                                ? a.compareTo(b)
+                                : groupA.compareTo(groupB);
+                          });
+                        });
+                      },
+                      child: CircleAvatar(
+                        backgroundColor: isSelected ? Colors.grey : Colors.white,
+                        radius: 18,
+                        child: Text(
+                          mark,
+                          style: TextStyle(color: Colors.black, fontSize: 20),
+                        ),
+                      ),
+                    );
+                  }),
+                ),
+                
+              ],
+            );
+
 }
+  
+}
+
 
 int _getMarkTypeGroup(String mark) {
   if (mark == '+' || mark == '-' || mark == '±') {
