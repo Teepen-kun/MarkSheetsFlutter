@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'MarkSheet.dart';
 import 'package:numberpicker/numberpicker.dart';
+import 'templates.dart';
 
 
 class SettingScreen extends StatefulWidget{
@@ -18,9 +19,12 @@ class _SettingScreen extends State<SettingScreen>{
   int _timeLimitHour = 1; // 選択された時間
   int _timeLimitMinute = 0; //分
   int _timeLimitSecond = 0; //秒
-  String selectedMarkType = 'A-Z'; // デフォルトは 'A-Z'
   final List<String> markTypes = ['a-z', 'A-Z', '0-9', '+-', 'あ-ん', 'ア-ン'];
   List<String> selectedMarkTypes = ['1','2','3','4'];
+  bool _isMultipleSelectionAllowed = false; //複数選択の可否
+
+  String selectedTemplate = 'Custom';  //テンプレ
+
 
   @override
   void dispose() {
@@ -36,111 +40,161 @@ class _SettingScreen extends State<SettingScreen>{
         appBar: AppBar(title: Text('Settings')),
         body: Padding(
         padding: const EdgeInsets.all(10.0),
-        child: Column(
-          //mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-          //マークシート名入力欄
-          TextField(
-              controller: _marksheetnameController,
-              decoration: InputDecoration(labelText: 'Mark Sheet Name'),//MarkSheetの名前
-            ),
-          SizedBox(height: 20),
+        child: SingleChildScrollView(
+          child: Column(
+            //mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+            // テンプレート選択プルダウン
+              DropdownButton<String>(
+                value: selectedTemplate,
+                items: templates.map((template) {
+                  return DropdownMenuItem<String>(
+                    value: template['name'],
+                    child: Text(template['name']),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(() {
+                    selectedTemplate = value!;
+                    final template = templates.firstWhere((template) => template['name'] == selectedTemplate);
 
-          //問題数入力欄
-          TextField(
-              controller: _numberofquestionController,
-              decoration: InputDecoration(labelText: '問題数'),
-              keyboardType: TextInputType.number,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly], //数値限定
-            ),
-          SizedBox(height: 20),
+                    // 選択したテンプレートの値を設定する
+                    _marksheetnameController.text = selectedTemplate;
+                    _numberofquestionController.text = template['questions'].toString();
+                    selectedMarkTypes = List<String>.from(template['markTypes']);
 
-          //時間設定欄，時間必要ならNumberPicker表示，不要ならなにもでない
-          Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text("時間を設定する"),
-                Switch(
-                  value: _isTimeLimitEnabled,
-                  onChanged: (value) {
-                    setState(() {
-                      _isTimeLimitEnabled = value;
-                    });
-                  },
-                ),
-              ],
-            ),
-            if (_isTimeLimitEnabled)
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+                    _isTimeLimitEnabled = template['isTimeLimitEnabled'];
+                    _timeLimitHour = template['timeLimitHour'];
+                    _timeLimitMinute = template['timeLimitMinute'];
+                    _timeLimitSecond = template['timeLimitSecond'];
+                    _isMultipleSelectionAllowed = template['isMultipleSelectionAllowed'];
+                  });
+                },
+              ),
+
+              const SizedBox(height: 20),
+            
+            //マークシート名入力欄
+            TextField(
+                controller: _marksheetnameController,
+                decoration: InputDecoration(labelText: 'マークシート名'),//MarkSheetの名前
+              ),
+            const SizedBox(height: 20),
+          
+            //問題数入力欄
+            TextField(
+                controller: _numberofquestionController,
+                decoration: InputDecoration(labelText: '問題数'),
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly], //数値限定
+              ),
+            const SizedBox(height: 20),
+          
+            //時間設定欄，時間必要ならNumberPicker表示，不要ならなにもでない
+            Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  //　時間（Hours）
-                  TimePickers(
-                    "時間",
-                    _timeLimitHour,
-                    5,
-                    (newValue) => setState(() => _timeLimitHour = newValue), // 値を更新に必要らしい
+                  Text("時間を設定する"),
+                  Switch(
+                    value: _isTimeLimitEnabled,
+                    onChanged: (value) {
+                      setState(() {
+                        _isTimeLimitEnabled = value;
+                      });
+                    },
                   ),
-                  Column(
-                    children: [
-                      Text(""),
-                      Text(" : ", style: TextStyle(fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                  //分(Minutes)
-                  TimePickers(
-                    "分", 
-                    _timeLimitHour == 5 ? _timeLimitMinute = 0 : _timeLimitMinute, 
-                    59,
-                    (newValue) => setState(() => _timeLimitMinute = newValue),
-                    ),
-                  Column(
-                    children: [
-                      Text(""),
-                      Text(" : ", style: TextStyle(fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                  //秒(Seconds)
-                  TimePickers(
-                    "秒",
-                    _timeLimitHour == 5 ? _timeLimitSecond = 0 : _timeLimitSecond,
-                    59,
-                    (newValue) => setState(() => _timeLimitSecond = newValue),
-                    )
                 ],
               ),
-            SizedBox(height: 20),
-          
-            ElevatedButton(
-              onPressed: () => _showMarkSelectDialog(selectedMarkTypes),
-              child: Text("Select Mark Types"),
-            ),   
-
-          //設定完了！！！！！！
-          ElevatedButton(
-            child: Text('OK'),
-            onPressed: (){
-              int numberOfQuestions =  int.tryParse(_numberofquestionController.text)  ??  1 ;
-              if(numberOfQuestions <= 0) numberOfQuestions = 1;
-
-              int _TimeLimit = 3600*_timeLimitHour + 60*_timeLimitMinute + _timeLimitSecond;//設定時間（秒）
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (context) => Marksheet(
-                    title: _marksheetnameController.text,
-                    numCellRows: numberOfQuestions,
-                    timelimit: _TimeLimit,
+              if (_isTimeLimitEnabled)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    //　時間（Hours）
+                    TimePickers(
+                      "時間",
+                      _timeLimitHour,
+                      5,
+                      (newValue) => setState(() => _timeLimitHour = newValue), // 値を更新に必要らしい
                     ),
-                )
-              );
+                    Column(
+                      children: [
+                        Text(""),
+                        Text(" : ", style: TextStyle(fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                    //分(Minutes)
+                    TimePickers(
+                      "分", 
+                      _timeLimitHour == 5 ? _timeLimitMinute = 0 : _timeLimitMinute, 
+                      59,
+                      (newValue) => setState(() => _timeLimitMinute = newValue),
+                      ),
+                    Column(
+                      children: [
+                        Text(""),
+                        Text(" : ", style: TextStyle(fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                    //秒(Seconds)
+                    TimePickers(
+                      "秒",
+                      _timeLimitHour == 5 ? _timeLimitSecond = 0 : _timeLimitSecond,
+                      59,
+                      (newValue) => setState(() => _timeLimitSecond = newValue),
+                      )
+                  ],
+                ),
+              const SizedBox(height: 20),
+            
+              ElevatedButton(
+                onPressed: () => _showMarkSelectDialog(selectedMarkTypes),
+                child: Text("Select Mark Types"),
+              ),   
 
-              
-
-            },
-          )
-
-        ],)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text("複数選択を許可する"),
+                  Switch(
+                    value: _isMultipleSelectionAllowed,
+                    onChanged: (value) {
+                      setState(() {
+                        _isMultipleSelectionAllowed= value;
+                      });
+                    },
+                  ),
+                ],
+              ),
+          
+            //設定完了！！！！！！
+            ElevatedButton(
+              child: Text('OK'),
+              onPressed: (){
+                int numberOfQuestions =  int.tryParse(_numberofquestionController.text)  ??  1 ;
+                if(numberOfQuestions <= 0) numberOfQuestions = 1;
+          
+                int _TimeLimit = 3600*_timeLimitHour + 60*_timeLimitMinute + _timeLimitSecond;//設定時間（秒）
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => Marksheet(
+                      title: _marksheetnameController.text,
+                      numCellRows: numberOfQuestions,
+                      isTimeLimitEnabled:_isTimeLimitEnabled,
+                      timelimit: _TimeLimit,
+                      marks: selectedMarkTypes,
+                      isMultipleSelectionAllowed: _isMultipleSelectionAllowed
+                      ),
+                  )
+                );
+          
+                
+          
+              },
+            )
+          
+          ],),
+        )
       )
     );
   }

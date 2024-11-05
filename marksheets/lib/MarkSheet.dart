@@ -1,19 +1,24 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 
-int numMarks = 10; //各解答番号（各行）ごとのマークの数
 
 class Marksheet extends StatefulWidget {
   const Marksheet({
     super.key, 
     required this.title,
     required this.numCellRows,
-    required this.timelimit
+    required this.isTimeLimitEnabled,
+    required this.timelimit,
+    required this.marks,
+    required this.isMultipleSelectionAllowed
     });
 
   final String title;
   final int numCellRows; //表示する行数
+  final bool isTimeLimitEnabled; //制限時間の可否
   final int timelimit; //制限時間
+  final List<String> marks; //選択したマークの種類
+  final bool isMultipleSelectionAllowed; //複数選択の可否
 
   @override
   State<Marksheet> createState() => _Marksheet();
@@ -28,6 +33,7 @@ class _Marksheet extends State<Marksheet> {
   //各回答ごとのマーク
   late List<List<Color>> markColors;
   late List<int?> selectedMark;
+  late List<List<bool>> selectedMarks;
 
   @override 
   void initState(){ //widgetプロパティを使うため
@@ -35,10 +41,14 @@ class _Marksheet extends State<Marksheet> {
   remainingTime = widget.timelimit; // 初期残り時間をセット
   markColors = List.generate(
     widget.numCellRows, 
-    (indexCellRows) => List.generate(numMarks, (indexMarks) => Colors.white)); 
+    (indexCellRows) => List.generate(widget.marks.length, (indexMarks) => Colors.white)); 
   
-  //各問題の現在の選択．1つの回答欄行に複数選択するのを防ぐため必要．
-  selectedMark = List.generate(widget.numCellRows,(index) => null);
+  //各問題の現在の選択．複数選択がtrueならselectedMarks, falseならselectedMark．
+    if (widget.isMultipleSelectionAllowed) {
+      selectedMarks = List.generate(widget.numCellRows, (_) => List.filled(widget.marks.length, false));
+    } else {
+      selectedMark = List.generate(widget.numCellRows, (index) => null);
+    }
   }
 
   // hh:mm:ssのフォーマットに変換
@@ -75,12 +85,16 @@ class _Marksheet extends State<Marksheet> {
 
   // MarkBoxセル生成
   List<Widget> buildMarkBox(int indexCellRow) {
-    return List.generate(numMarks, (index) {
+    return List.generate(widget.marks.length, (index) {
       return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 2.0),
         child: GestureDetector(
           onTap: (){
             setState(() {
+              if (widget.isMultipleSelectionAllowed) {
+                selectedMarks[indexCellRow][index] = !selectedMarks[indexCellRow][index];
+                markColors[indexCellRow][index] = selectedMarks[indexCellRow][index] ? Colors.black45 : Colors.white;
+              } else {
               if(selectedMark[indexCellRow] == index){
                 markColors[indexCellRow][index] = Colors.white;
                 selectedMark[indexCellRow] = null;
@@ -91,7 +105,9 @@ class _Marksheet extends State<Marksheet> {
               markColors[indexCellRow][index] = Colors.black45;
               selectedMark[indexCellRow] = index;
               }
+              }
             });
+          
           },
           child: Container(
             decoration: BoxDecoration(
@@ -99,11 +115,11 @@ class _Marksheet extends State<Marksheet> {
               border: Border.all(color: Colors.black38 ),
             ),
             child: CircleAvatar(
-              radius: 10,
+              radius: 20,
               backgroundColor: markColors[indexCellRow][index],
               child: Text(
-                '$index',
-                style: TextStyle(fontSize: 10.5, color: Colors.black87),
+                '${widget.marks[index]}',
+                style: TextStyle(fontSize: 15, color: Colors.black87),
               ),
             ),
           ),
