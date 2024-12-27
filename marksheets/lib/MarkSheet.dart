@@ -38,7 +38,9 @@ class _Marksheet extends State<Marksheet> {
   //各回答ごとのマーク
   late List<List<Color>> markColors;
   
-  late List<List<bool>> selectedMarks;
+  late List<List<bool>> selectedMarks; //選択済みマークの位置
+
+  late List<List<bool>> answerList;//正解のマークの位置
 
   @override 
   void initState(){ //widgetプロパティを使うため
@@ -50,10 +52,17 @@ class _Marksheet extends State<Marksheet> {
     (indexCellRows) => List.generate(widget.marks.length, (indexMarks) => Colors.white)
     ); 
 
-    selectedMarks = List.generate(
+  selectedMarks = List.generate(
     widget.numCellRows,
     (_) => List.filled(widget.marks.length, false)
   );
+
+  answerList = List.generate(
+  widget.numCellRows,
+  (_) => List.filled(widget.marks.length, false),
+);
+
+  
     
   }
 
@@ -115,7 +124,7 @@ class _Marksheet extends State<Marksheet> {
     selectedMarks = List.generate(widget.numCellRows, (_) => List.filled(widget.marks.length, false));
   }
     setState(() {
-      isScoringMode = true;
+      isScoringMode = !isScoringMode;
     });
   }
 
@@ -137,16 +146,18 @@ class _Marksheet extends State<Marksheet> {
 
       // 採点モードの処理
       if (isScoringMode) {
-        
-          borderColor = selectedMarks[indexCellRow][index] ? Colors.green : Colors.red;
-      }else{
-          borderColor = Colors.black38;
-      }
+          if (selectedMarks[indexCellRow][index] && answerList[indexCellRow][index]) {
+             borderColor = Colors.green; // 正解
+          } else if (answerList[indexCellRow][index] && !selectedMarks[indexCellRow][index]) {
+            borderColor = Colors.red; // 不正解
+          } 
+}
           //isCorrect = selectedMark[indexCellRow] == index;
 
       return GestureDetector(
         onTap: () {
           if (!isScoringMode) {
+            //解答モード
             setState(() {
               if (widget.isMultipleSelectionAllowed) {
                 // 複数選択モードのタップ処理
@@ -163,20 +174,18 @@ class _Marksheet extends State<Marksheet> {
             });
             print(selectedMarks);
           }else{
-            // 採点モードでの枠線色の切り替え
-              if (selectedMarks[indexCellRow][index]) {
-                // 正解選択済みを解除
-                selectedMarks[indexCellRow][index] = false;
-              } else {
-                // 不正解選択済みを解除
-                selectedMarks[indexCellRow][index] = true;
-              }
+            //採点モードのときだよーん
+            setState(() {answerList[indexCellRow][index] = !answerList[indexCellRow][index];
+    });
           }
         },
         child: Container(
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            border: Border.all(color: borderColor),
+            border: Border.all(
+              color: borderColor,
+              width: isScoringMode && (borderColor == Colors.green || borderColor == Colors.red) ? 3.0 : 1.0,
+              ),
           ),
           child: CircleAvatar(
             radius: 14,
@@ -279,8 +288,8 @@ class _Marksheet extends State<Marksheet> {
                 ),
               SizedBox(width: 10),
               ElevatedButton(
-                  onPressed: isScoringMode ? null : startScoring,
-                  child: const Text("Start Scoring"),
+                  onPressed: startScoring,
+                  child: Text(isScoringMode? "End Scoring" : "Start Scoring" ),
               ),
             ],
           );
