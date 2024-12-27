@@ -95,7 +95,7 @@
     },
     {
       'name': 'TOEIC Listening',
-      'questions': 200,
+      'questions': 100,
       'markTypes': ['A', 'B', 'C', 'D'],
       'isTimeLimitEnabled': true,
       'timeLimitHour': 0,
@@ -105,7 +105,7 @@
     },
     {
       'name': 'TOEIC Reading',
-      'questions': 200,
+      'questions': 100,
       'markTypes': ['A', 'B', 'C', 'D'],
       'isTimeLimitEnabled': true,
       'timeLimitHour': 1,
