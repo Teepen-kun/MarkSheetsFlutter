@@ -167,8 +167,20 @@ class _Marksheet extends State<Marksheet> {
               } else {
                 // 単一選択モードのタップ処理
                 for (int i = 0; i < widget.marks.length; i++) {
-                    selectedMarks[indexCellRow][i] = (i == index);
-                    markColors[indexCellRow][i] = (i == index) ? Colors.black45 : Colors.white;
+                    if (i == index) {
+                      // すでに選択されている場合は解除
+                      if (selectedMarks[indexCellRow][i]) {
+                      selectedMarks[indexCellRow][i] = false;
+                      markColors[indexCellRow][i] = Colors.white;
+                      } else {
+                      selectedMarks[indexCellRow][i] = true;
+                      markColors[indexCellRow][i] = Colors.black45;
+                    }
+                    } else {
+                     // 他の選択肢は解除
+                      selectedMarks[indexCellRow][i] = false;
+                      markColors[indexCellRow][i] = Colors.white;
+                    }
                   }
               }
             });
