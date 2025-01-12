@@ -1,14 +1,11 @@
 import 'package:flutter/material.dart';
 import 'SettingScreen.dart';
 import 'MarkSheet.dart';
+import 'database_helper.dart';
 
 class HomeScreen extends StatelessWidget {
-  // 過去のマークシートデータ（サンプル）
-  final List<Map<String, dynamic>> savedMarkSheets = [
-    {'title': 'Sample 1', 'rows': 10, 'marks': ['A', 'B', 'C', 'D']},
-    {'title': 'Math Exam', 'rows': 20, 'marks': ['1', '2', '3', '4', '5']},
-    {'title': 'English Test', 'rows': 15, 'marks': ['A', 'B', 'C', 'D', 'E']},
-  ];
+  //const HomeScreen({Key? key}) : super(key: key);
+  final DatabaseHelper dbHelper = DatabaseHelper();
 
   @override
   Widget build(BuildContext context) {
@@ -23,30 +20,48 @@ class HomeScreen extends StatelessWidget {
           children: [
             // 過去のマークシートリスト
             Expanded(
-              child: ListView.builder(
-                itemCount: savedMarkSheets.length,
-                itemBuilder: (context, index) {
-                  final sheet = savedMarkSheets[index];
-                  return Card(
-                    child: ListTile(
-                      title: Text(sheet['title']),
-                      subtitle: Text('行数: ${sheet['rows']}'),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => Marksheet(
-                              title: sheet['title'],
-                              numCellRows: sheet['rows'],
-                              marks: sheet['marks'],
-                              isMultipleSelectionAllowed: true, // 適宜設定
-                              isTimeLimitEnabled: false, // 適宜設定
-                              timelimit: 0, // 適宜設定
-                            ),
-                          ),
-                        );
-                      },
-                    ),
+              child: FutureBuilder(
+                future: DatabaseHelper().getMarksheets(), // SQLiteからデータ取得
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (snapshot.hasError) {
+                    return Center(child: Text('エラー: ${snapshot.error}'));
+                  }
+                  final savedMarkSheets = snapshot.data as List<Map<String, dynamic>>;
+
+                  if (savedMarkSheets.isEmpty) {
+                    return const Center(child: Text('マークシートがありません'));
+                  }
+
+                  return ListView.builder(
+                    itemCount: savedMarkSheets.length,
+                    itemBuilder: (context, index) {
+                      final sheet = savedMarkSheets[index];
+                      return Card(
+                        child: ListTile(
+                          title: Text(sheet['title']),
+                          subtitle: Text('行数: ${sheet['numCellRows']}'),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => Marksheet(
+                                  title: sheet['title'],
+                                  numCellRows: sheet['numCellRows'],
+                                  marks: (sheet['markTypes'] as String).split(','), // マークをリストに変換
+                                  isMultipleSelectionAllowed:
+                                      sheet['isMultipleSelectionAllowed'] == 1,
+                                  isTimeLimitEnabled: sheet['isTimeLimitEnabled'] == 1,
+                                  timelimit: sheet['timelimit'],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      );
+                    },
                   );
                 },
               ),
