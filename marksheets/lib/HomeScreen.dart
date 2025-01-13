@@ -48,6 +48,7 @@ class HomeScreen extends StatelessWidget {
                               context,
                               MaterialPageRoute(
                                 builder: (context) => Marksheet(
+                                  marksheetID: sheet['id'],
                                   title: sheet['title'],
                                   numCellRows: sheet['numCellRows'],
                                   marks: (sheet['markTypes'] as String).split(','), // マークをリストに変換
@@ -75,7 +76,7 @@ class HomeScreen extends StatelessWidget {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => const SettingScreen(),
+              builder: (context) => const SettingScreen(isNew: true),
             ),
           );
         },

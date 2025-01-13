@@ -78,6 +78,24 @@ class DatabaseHelper {
     where: 'id = ?',
     whereArgs: [id],
   );
+}  
+
+  Future<Map<String, dynamic>?> getMarksheet(int id) async {
+  final db = await database;
+
+  // 特定のIDのマークシートを取得
+  final result = await db.query(
+    'marksheets',
+    where: 'id = ?',
+    whereArgs: [id],
+  );
+
+  // 結果が存在すれば最初の行を返し、存在しなければ null を返す
+  if (result.isNotEmpty) {
+    return result.first;
+  } else {
+    return null;
+  }
 }
 
 

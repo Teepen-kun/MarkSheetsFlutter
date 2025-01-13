@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:sqflite/sqflite.dart';
 import 'dart:async';
 import 'HomeScreen.dart';
 import 'SettingScreen.dart';
+import 'database_helper.dart';
 
 
 class Marksheet extends StatefulWidget {
   const Marksheet({
     super.key, 
+    required this.marksheetID,
     required this.title,
     required this.numCellRows,
     required this.isTimeLimitEnabled,
@@ -14,7 +17,7 @@ class Marksheet extends StatefulWidget {
     required this.marks,
     required this.isMultipleSelectionAllowed
     });
-
+  final int marksheetID; // マークシートのid
   final String title;
   final int numCellRows; //表示する行数
   final bool isTimeLimitEnabled; //制限時間の可否
@@ -235,13 +238,27 @@ class _Marksheet extends State<Marksheet> {
         actions: [
           IconButton(
             icon: Icon(Icons.settings), // 設定アイコン
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => SettingScreen(),
-                ),
-              );
+            onPressed: () async {
+              try {
+                // データベースから現在のマークシート情報を取得
+              final marksheetData = await DatabaseHelper().getMarksheet(widget.marksheetID);
+
+               // SettingScreen に遷移
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => SettingScreen(
+                      isNew: false,
+                      existingData: marksheetData,
+                    ),
+                  ),
+                );
+              } catch (e) {
+                // エラー処理
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('エラー: データを取得できませんでした')),
+                );
+    }
             },
           ),
         ],

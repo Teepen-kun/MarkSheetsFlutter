@@ -7,7 +7,11 @@ import 'database_helper.dart';
 
 
 class SettingScreen extends StatefulWidget{
-  const SettingScreen({super.key});
+
+  final bool isNew; // 新規作成か更新か
+  final Map<String, dynamic>? existingData; // 更新時のデータ
+
+  const SettingScreen({super.key, required this.isNew, this.existingData});
 
   @override
   State<SettingScreen> createState() => _SettingScreen();
@@ -26,6 +30,24 @@ class _SettingScreen extends State<SettingScreen>{
 
   String selectedTemplate = 'Custom';  //テンプレ
 
+  @override
+  void initState() {
+    super.initState();
+    if (!widget.isNew && widget.existingData != null) {
+      // 更新時にデータを初期化
+      final data = widget.existingData!;
+      _marksheetnameController.text = data['title'];
+      _numberofquestionController.text = data['numCellRows'].toString();
+      selectedMarkTypes = (data['markTypes'] as String).split(',');
+      _isTimeLimitEnabled = data['isTimeLimitEnabled'] == 1;
+      final timelimit = data['timelimit'] as int;
+      _timeLimitHour = timelimit ~/ 3600;
+      _timeLimitMinute = (timelimit % 3600) ~/ 60;
+      _timeLimitSecond = timelimit % 60;
+      _isMultipleSelectionAllowed = data['isMultipleSelectionAllowed'] == 1;
+    }
+  }
+
 
   @override
   void dispose() {
@@ -35,6 +57,7 @@ class _SettingScreen extends State<SettingScreen>{
   }
 
   // データベースにマークシートを保存するメソッド
+  /*
   Future<void> _saveMarksheet() async {
     final database = await DatabaseHelper.instance.database;
 
@@ -58,7 +81,7 @@ class _SettingScreen extends State<SettingScreen>{
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('マークシートを保存しました')),
     );
-  }
+  }*/
 
 
   @override
@@ -207,7 +230,7 @@ class _SettingScreen extends State<SettingScreen>{
                   final db = await DatabaseHelper.instance.database; 
                   // データベースに保存
                   final newSheet = {
-                    'title': _marksheetnameController.text,
+                    'title': _marksheetnameController.text == '' ? '無題' : _marksheetnameController.text,
                     'numCellRows': finalizednumberOfQuestions,
                     'isTimeLimitEnabled': _isTimeLimitEnabled ? 1 : 0,
                     'timelimit': _TimeLimit,
@@ -216,13 +239,20 @@ class _SettingScreen extends State<SettingScreen>{
                     'createdAt': DateTime.now().toIso8601String(),
                   };
 
-                
-                  await db.insert('marksheets', newSheet);
+                  if(widget.isNew){
+                    //新規作成
+                    final insertedID = await DatabaseHelper().insertMarksheet(newSheet);
+                    newSheet['id'] = insertedID;
 
-                  Navigator.push(
+                    //await db.insert('marksheets', newSheet);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('マークシートを保存しました')),
+                  );
+                    Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (context) => Marksheet(
+                            marksheetID: insertedID,
                             title: newSheet['title'] as String,
                             numCellRows: newSheet['numCellRows'] as int,
                             marks: selectedMarkTypes, // マークリストをそのまま渡す
@@ -231,10 +261,39 @@ class _SettingScreen extends State<SettingScreen>{
                             timelimit: newSheet['timelimit'] as int,
                           ),
                         ),
-                  );
-                    ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('マークシートを保存しました')),
-                  );
+                    );
+                  } else {
+                  // 更新
+                      final id = widget.existingData!['id'];
+                      DatabaseHelper().updateMarksheet(id, newSheet);
+
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                      MaterialPageRoute(
+                        builder: (context) => Marksheet(
+                          marksheetID: id,
+                          title: newSheet['title'] as String,
+                          numCellRows: newSheet['numCellRows'] as int,
+                          marks: selectedMarkTypes,
+                          isMultipleSelectionAllowed: newSheet['isMultipleSelectionAllowed'] == 1,
+                          isTimeLimitEnabled: newSheet['isTimeLimitEnabled'] == 1,
+                          timelimit: newSheet['timelimit'] as int,
+                        ),
+                      ),
+                      (route) => false, // これで戻る際に古い画面を削除
+                    );
+                                        
+                    /*
+                    await db.update(
+                      'marksheets',
+                      newSheet,
+                      where: 'id = ?',
+                      whereArgs: [id],
+                    );*/
+                      ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('マークシートを更新しました')),
+                    );
+                  }
                 /*
           
                 Navigator.push(
