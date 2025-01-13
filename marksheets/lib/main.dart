@@ -30,11 +30,11 @@ void main() async {
   // サンプルデータ挿入
   await dbHelper.insertMarksheet({
     'title': 'Sample Sheet',
-    'numCellRows': 10,
+    'numCellRows': 50,
     'markTypes': 'A,B,C,D',
     'isMultipleSelectionAllowed': 1,
     'isTimeLimitEnabled': 0,
-    'timelimit': 0,
+    'timelimit': 180,
     'createdAt': DateTime.now().toIso8601String(),
   });
 

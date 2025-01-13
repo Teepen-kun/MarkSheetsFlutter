@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'HomeScreen.dart';
+import 'SettingScreen.dart';
 
 
 class Marksheet extends StatefulWidget {
@@ -219,6 +221,31 @@ class _Marksheet extends State<Marksheet> {
       appBar: AppBar(
         title: 
             Text(widget.title),
+            leading: IconButton(
+            icon: Icon(Icons.home),
+            onPressed: () {
+            // HomeScreen に戻る処理
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (context) => HomeScreen()),
+              (route) => false,
+            );
+          },
+        ),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.settings), // 設定アイコン
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => SettingScreen(),
+                ),
+              );
+            },
+          ),
+        ],
+          
       ),
         body: Column(
           children: [

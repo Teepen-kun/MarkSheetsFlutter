@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'MarkSheet.dart';
 import 'package:numberpicker/numberpicker.dart';
 import 'templates.dart';
+import 'database_helper.dart';
 
 
 class SettingScreen extends StatefulWidget{
@@ -31,6 +32,32 @@ class _SettingScreen extends State<SettingScreen>{
       _marksheetnameController.dispose(); // メモリリークを防ぐためにdisposeする...必要性はあとで考える
       _numberofquestionController.dispose();
     super.dispose();
+  }
+
+  // データベースにマークシートを保存するメソッド
+  Future<void> _saveMarksheet() async {
+    final database = await DatabaseHelper.instance.database;
+
+    final marksheetData = {
+      'title': _marksheetnameController.text.isNotEmpty
+          ? _marksheetnameController.text
+          : 'Untitled',
+      'numCellRows': int.tryParse(_numberofquestionController.text) ?? 1,
+      'markTypes': selectedMarkTypes.join(','),
+      'isMultipleSelectionAllowed': _isMultipleSelectionAllowed ? 1 : 0,
+      'isTimeLimitEnabled': _isTimeLimitEnabled ? 1 : 0,
+      'timelimit': _isTimeLimitEnabled
+          ? _timeLimitHour * 3600 + _timeLimitMinute * 60 + _timeLimitSecond
+          : 0,
+      'createdAt': DateTime.now().toIso8601String(),
+    };
+
+    await database.insert('marksheets', marksheetData);
+
+    // 保存完了メッセージ
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('マークシートを保存しました')),
+    );
   }
 
 
@@ -169,11 +196,47 @@ class _SettingScreen extends State<SettingScreen>{
             //設定完了！！！！！！
             ElevatedButton(
               child: Text('OK'),
-              onPressed: (){
-                int numberOfQuestions =  int.tryParse(_numberofquestionController.text)  ??  1 ;
-                if(numberOfQuestions <= 0) numberOfQuestions = 1;
+              onPressed: () async{
+                
+                  int numberOfQuestions =  int.tryParse(_numberofquestionController.text)  ??  1 ;
+                  if(numberOfQuestions <= 0) numberOfQuestions = 1;
+
+                  final finalizednumberOfQuestions = numberOfQuestions;
+                  final _TimeLimit = 3600*_timeLimitHour + 60*_timeLimitMinute + _timeLimitSecond;//設定時間（秒）
+
+                  final db = await DatabaseHelper.instance.database; 
+                  // データベースに保存
+                  final newSheet = {
+                    'title': _marksheetnameController.text,
+                    'numCellRows': finalizednumberOfQuestions,
+                    'isTimeLimitEnabled': _isTimeLimitEnabled ? 1 : 0,
+                    'timelimit': _TimeLimit,
+                    'markTypes': selectedMarkTypes.join(','), // リストをカンマ区切りで保存
+                    'isMultipleSelectionAllowed': _isMultipleSelectionAllowed ? 1 : 0,
+                    'createdAt': DateTime.now().toIso8601String(),
+                  };
+
+                
+                  await db.insert('marksheets', newSheet);
+
+                  Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => Marksheet(
+                            title: newSheet['title'] as String,
+                            numCellRows: newSheet['numCellRows'] as int,
+                            marks: selectedMarkTypes, // マークリストをそのまま渡す
+                            isMultipleSelectionAllowed: newSheet['isMultipleSelectionAllowed'] == 1,
+                            isTimeLimitEnabled: newSheet['isTimeLimitEnabled'] == 1,
+                            timelimit: newSheet['timelimit'] as int,
+                          ),
+                        ),
+                  );
+                    ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('マークシートを保存しました')),
+                  );
+                /*
           
-                int _TimeLimit = 3600*_timeLimitHour + 60*_timeLimitMinute + _timeLimitSecond;//設定時間（秒）
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -187,7 +250,7 @@ class _SettingScreen extends State<SettingScreen>{
                       ),
                   )
                 );
-          
+              */
                 
           
               },

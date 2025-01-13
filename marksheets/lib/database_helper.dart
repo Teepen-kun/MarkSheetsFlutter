@@ -12,6 +12,9 @@ class DatabaseHelper {
 
   static Database? _database;
 
+  static final DatabaseHelper instance = _instance;
+
+
   DatabaseHelper._internal();
 
   
