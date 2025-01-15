@@ -30,7 +30,7 @@ void main() async {
   // サンプルデータ挿入
   await dbHelper.insertMarksheet({
     'title': 'Sample Sheet',
-    'numCellRows': 50,
+    'numCellRows': 10,
     'markTypes': 'A,B,C,D',
     'isMultipleSelectionAllowed': 1,
     'isTimeLimitEnabled': 0,

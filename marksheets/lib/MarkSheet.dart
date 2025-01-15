@@ -47,11 +47,13 @@ class _Marksheet extends State<Marksheet> {
 
   late List<List<bool>> answerList;//正解のマークの位置
 
+  late List<bool> questionResults; // 問題ごとの正解状態
+
   @override 
   void initState(){ //widgetプロパティを使うため
   super.initState();
   remainingTime = widget.timelimit; // 初期残り時間をセット
-
+  questionResults = List.filled(widget.numCellRows, false);// 初期化時はすべて未採点（false）
   markColors = List.generate(
     widget.numCellRows, 
     (indexCellRows) => List.generate(widget.marks.length, (indexMarks) => Colors.white)
@@ -124,6 +126,7 @@ class _Marksheet extends State<Marksheet> {
   }
   //採点開始！
   void startScoring() {
+    gradeQuestions();
     if (widget.isMultipleSelectionAllowed && selectedMarks == null) {
     // 複数選択が許可されていてselectedMarksが初期化されていない場合、初期化する
     selectedMarks = List.generate(widget.numCellRows, (_) => List.filled(widget.marks.length, false));
@@ -147,7 +150,7 @@ class _Marksheet extends State<Marksheet> {
     alignment: WrapAlignment.center,
     children: List.generate(widget.marks.length, (index) {
       Color borderColor = Colors.black38; // デフォルトの枠色
-      bool isCorrect = false; // 正解かどうかを保持
+      //bool isCorrect = false; // 正解かどうかを保持
 
       // 採点モードの処理
       if (isScoringMode) {
@@ -156,6 +159,7 @@ class _Marksheet extends State<Marksheet> {
           } else if (answerList[indexCellRow][index] && !selectedMarks[indexCellRow][index]) {
             borderColor = Colors.red; // 不正解
           } 
+          
 }
           //isCorrect = selectedMark[indexCellRow] == index;
 
@@ -192,11 +196,15 @@ class _Marksheet extends State<Marksheet> {
             print(selectedMarks);
           }else{
             //採点モードのときだよーん
-            setState(() {answerList[indexCellRow][index] = !answerList[indexCellRow][index];
-    });
+            setState(() {
+              answerList[indexCellRow][index] = !answerList[indexCellRow][index];
+              gradeQuestions();              
+            });
           }
         },
         child: Container(
+          width: 30,
+          height: 30,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             border: Border.all(
@@ -218,8 +226,52 @@ class _Marksheet extends State<Marksheet> {
   );
 }
 
+ // 回答の正誤
+  void gradeQuestions() {
+    setState(() {
+      for (int i = 0; i < widget.numCellRows; i++) {
+        bool isAnswered = false;
+        bool isQuestionCorrect = true;
+
+        for (int j = 0; j < widget.marks.length; j++) {
+          if (selectedMarks[i][j]) {
+            isAnswered = true; //どれかしら回答している
+          }  
+          if (selectedMarks[i][j] != answerList[i][j]) {
+            isQuestionCorrect = false;
+            break;
+          }
+        }
+
+        questionResults[i] = isAnswered && isQuestionCorrect;
+      }
+    });
+  }
+
+// 問題番号セルの生成
+  Widget buildQuestionNumber(int index) {
+    final Color bgColor = questionResults[index]
+        ? Colors.green // 正解の場合は緑
+        : Colors.red; // 不正解の場合は赤
+
+    return Container(
+      //height: 50,
+      color: isScoringMode ? bgColor : null, // 採点モードのみ色を変える
+      alignment: Alignment.center,
+      child: Center(
+        child: Text(
+          '${index + 1}',
+          style: const TextStyle(fontSize: 14, color: Colors.black),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    // 正解数の計算
+    int correctCount = questionResults.where((result) => result).length;
+
     return Scaffold(
       appBar: AppBar(
         title: 
@@ -276,11 +328,11 @@ class _Marksheet extends State<Marksheet> {
               child: SingleChildScrollView(
               scrollDirection: Axis.vertical,
               child: Padding(
-                padding: const EdgeInsets.all(16.0),
+                padding: const EdgeInsets.all(8.0),
                 child: Table(
                   border: TableBorder.all(color: Colors.grey), 
                   columnWidths: const{
-                    0: FixedColumnWidth(40)
+                    0: FixedColumnWidth(30)
                   },
                   children: List.generate(widget.numCellRows, (index) {
                     final Color rowColor = (index % 2 == 0) ? Colors.grey[200]! : Colors.white; //行ごとに少し色変える
@@ -291,17 +343,10 @@ class _Marksheet extends State<Marksheet> {
                       ),
                       children: [
                         // 左側の行番号
-                        Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Container(
-                            child: Center(
-                              child: Text(
-                                '${index + 1}',
-                                style: TextStyle(fontSize: 12, color: Colors.black),
-                              ),
-                            ),
+                        TableCell(
+                          verticalAlignment: TableCellVerticalAlignment.fill, // 行全体の高さに合わせる
+                          child: buildQuestionNumber(index)
                           ),
-                        ),
                         // マークが並んだセル
                         TableCell(
                           verticalAlignment: TableCellVerticalAlignment.middle, //セルの位置をちょうど真ん中に
@@ -317,8 +362,28 @@ class _Marksheet extends State<Marksheet> {
                   }),
                 ),
               ),
-                    ),
+             ),
             ),
+            // 点数表示用のContainer
+        if (isScoringMode)
+          Container(
+            color: Colors.blueAccent,
+            padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  "得点",
+                  style: TextStyle(fontSize: 18, color: Colors.white),
+                ),
+                Text(
+                  "$correctCount / ${widget.numCellRows}",
+                  style: const TextStyle(fontSize: 18, color: Colors.white),
+                ),
+              ],
+            ),
+          ),
+            
           ],
         ),
     );
