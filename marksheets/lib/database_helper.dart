@@ -37,6 +37,7 @@ class DatabaseHelper {
   }
 
   Future<void> _onCreate(Database db, int version) async {
+    // マークシート設定のテーブル作成
     await db.execute('''
       CREATE TABLE marksheets (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -49,18 +50,35 @@ class DatabaseHelper {
         createdAt TEXT NOT NULL
       )
     ''');
+
+    // 回答データのテーブル作成
+    await db.execute('''
+      CREATE TABLE answers (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        marksheet_id INTEGER NOT NULL,
+        answer TEXT NOT NULL
+      )
+    ''');
+
+    // 正解データのテーブル作成
+    await db.execute('''
+      CREATE TABLE correct_answers (
+        marksheet_id INTEGER PRIMARY KEY,
+        correct_answer TEXT NOT NULL
+      )
+  ''');
   }
 
-  Future<int> insertMarksheet(Map<String, dynamic> marksheet) async {
-  final db = await database;
-  return await db.insert('marksheets', marksheet);
-}
-
+//Marksheetのリストを表示
   Future<List<Map<String, dynamic>>> getMarksheets() async {
   final db = await database; // 既にあるデータベースを取得
   return await db.query('marksheets', orderBy: 'createdAt DESC'); // 作成日時順で取得
 }
 
+  Future<int> insertMarksheet(Map<String, dynamic> marksheet) async {
+  final db = await database;
+  return await db.insert('marksheets', marksheet);
+}
 
   Future<int> updateMarksheet(int id, Map<String, dynamic> updatedData) async {
   final db = await database;
@@ -98,6 +116,62 @@ class DatabaseHelper {
   }
 }
 
+
+
+  // 回答データ関連の操作
+  Future<int> insertAnswer(Map<String, dynamic> answerData) async {
+    final db = await database;
+    return await db.insert('answers', answerData);
+  }
+
+  Future<List<Map<String, dynamic>>> getAnswersByQuestion(int questionId) async {
+    final db = await database;
+    return await db.query('answers', where: 'question_id = ?', whereArgs: [questionId]);
+  }
+
+  Future<int> updateAnswer(int marksheetId, Map<String, dynamic> updatedData) async {
+    final db = await database; // データベースインスタンスを取得
+    return await db.update(
+    'answers',
+    updatedData,
+    where: 'id = ?',
+    whereArgs: [marksheetId],
+    );
+}
+
+Future<String?> getAnswer(int marksheetId) async{
+  final db = await database;
+
+  // 指定された marksheet_id のデータに紐づいた回答を取得
+  final result = await db.query(
+    'answers',
+    where: 'marksheet_id = ?',
+    whereArgs: [marksheetId],
+  );
+  if (result.isNotEmpty) {
+    return result.first['marks'] as String;
+  } else {
+    return null;
+  }
+}
+
+
+  // 正解データ関連の操作
+  Future<int> insertCorrectAnswer(Map<String, dynamic> correctAnswerData) async {
+    final db = await database;
+    return await db.insert('correct_answers', correctAnswerData);
+  }
+
+  Future<Map<String, dynamic>?> getCorrectAnswer(int questionId) async {
+    final db = await database;
+    final result = await db.query(
+      'correct_answers',
+      where: 'question_id = ?',
+      whereArgs: [questionId],
+    );
+    return result.isNotEmpty ? result.first : null;
+  }
+  
 
 }
 

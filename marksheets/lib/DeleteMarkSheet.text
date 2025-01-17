@@ -39,45 +39,38 @@ class _Marksheet extends State<Marksheet> {
   // 試験モード(false)or採点モード(true)
   bool isScoringMode = false;
 
-  
-
 
   //各回答ごとのマーク
-  late List<List<String>> selectedMarks; //選択済みマークの位置
+  late List<List<Color>> markColors;
+  
+  late List<List<bool>> selectedMarks; //選択済みマークの位置
 
-  late List<List<String>> answerList;//正解のマークの位置
+  late List<List<bool>> answerList;//正解のマークの位置
 
   late List<bool> questionResults; // 問題ごとの正解状態
-
-  late List<List<bool>> markColors;
-
-  late List<String> sortedselectedMarks; //回答と正解が一致するかどうかを判定するために使う
-  late List<String> sortedanswerList;
 
   @override 
   void initState(){ //widgetプロパティを使うため
   super.initState();
   remainingTime = widget.timelimit; // 初期残り時間をセット
   questionResults = List.filled(widget.numCellRows, false);// 初期化時はすべて未採点（false）
-  
+  markColors = List.generate(
+    widget.numCellRows, 
+    (indexCellRows) => List.generate(widget.marks.length, (indexMarks) => Colors.white)
+    ); 
 
   selectedMarks = List.generate(
     widget.numCellRows,
-    (_) => []
+    (_) => List.filled(widget.marks.length, false)
   );
 
   answerList = List.generate(
   widget.numCellRows,
-  (_) =>[]
-  );
+  (_) => List.filled(widget.marks.length, false),
+);
 
-  markColors = List.generate(
-    widget.numCellRows, 
-    (indexCellRows) => List.filled(widget.marks.length, false)
-    ); 
+  
     
-  sortedselectedMarks = List.filled(widget.numCellRows, '');
-  sortedanswerList = List.filled(widget.numCellRows, '');
   }
 
   // hh:mm:ssのフォーマットに変換
@@ -136,7 +129,7 @@ class _Marksheet extends State<Marksheet> {
     gradeQuestions();
     if (widget.isMultipleSelectionAllowed && selectedMarks == null) {
     // 複数選択が許可されていてselectedMarksが初期化されていない場合、初期化する
-    selectedMarks = List.generate(widget.numCellRows, (_) => []);
+    selectedMarks = List.generate(widget.numCellRows, (_) => List.filled(widget.marks.length, false));
   }
     setState(() {
       isScoringMode = !isScoringMode;
@@ -156,60 +149,56 @@ class _Marksheet extends State<Marksheet> {
     runSpacing: 4.0,
     alignment: WrapAlignment.center,
     children: List.generate(widget.marks.length, (index) {
-      String mark = widget.marks[index]; //タップしたマーク
       Color borderColor = Colors.black38; // デフォルトの枠色
       //bool isCorrect = false; // 正解かどうかを保持
-      
 
-      //isCorrect = selectedMark[indexCellRow] == index;
-
+      // 採点モードの処理
       if (isScoringMode) {
-        // 採点モードの処理
-        if (answerList[indexCellRow].contains(mark) && selectedMarks[indexCellRow].contains(mark)) {
-          borderColor = Colors.green; // 正解マークが選択されている
-        } else if (answerList[indexCellRow].contains(mark) && !selectedMarks[indexCellRow].contains(mark)) {
-          borderColor = Colors.red; // 正解マークが選択されていない
+          if (selectedMarks[indexCellRow][index] && answerList[indexCellRow][index]) {
+             borderColor = Colors.green; // 正解
+          } else if (answerList[indexCellRow][index] && !selectedMarks[indexCellRow][index]) {
+            borderColor = Colors.red; // 不正解
+          }     
         }
-      }
+          //isCorrect = selectedMark[indexCellRow] == index;
 
       return GestureDetector(
         onTap: () async {
           if (!isScoringMode) {
-            
             //解答モード
             setState(() {
-              markColors[indexCellRow][index] = !markColors[indexCellRow][index];
-               if (widget.isMultipleSelectionAllowed) { //複数選択モード
-                selectedMarks[indexCellRow].contains(mark) ?
-                  selectedMarks[indexCellRow].remove(mark):
-                  selectedMarks[indexCellRow].add(mark);        
-                }else{//単一選択
-                selectedMarks[indexCellRow].contains(mark) ?
-                  selectedMarks[indexCellRow].remove(mark):
-                  selectedMarks[indexCellRow].add(mark);
-                  if(selectedMarks[indexCellRow].length > 1){
-                    markColors[indexCellRow][widget.marks.indexWhere((element) => element == selectedMarks[indexCellRow][0])] = false;
-                    print(widget.marks.indexWhere((element) => element == selectedMarks[indexCellRow][0]));
-                    selectedMarks[indexCellRow].removeAt(0);
+              if (widget.isMultipleSelectionAllowed) {
+                // 複数選択モードのタップ処理
+                selectedMarks[indexCellRow][index] = !selectedMarks[indexCellRow][index];
+                markColors[indexCellRow][index] =
+                    selectedMarks[indexCellRow][index] ? Colors.black45 : Colors.white;
+              } else {
+                // 単一選択モードのタップ処理
+                for (int i = 0; i < widget.marks.length; i++) {
+                    if (i == index) {
+                      // すでに選択されている場合は解除
+                      if (selectedMarks[indexCellRow][i]) {
+                      selectedMarks[indexCellRow][i] = false;
+                      markColors[indexCellRow][i] = Colors.white;
+                      } else {
+                      selectedMarks[indexCellRow][i] = true;
+                      markColors[indexCellRow][i] = Colors.black45;
+                    }
+                    } else {
+                     // 他の選択肢は解除
+                      selectedMarks[indexCellRow][i] = false;
+                      markColors[indexCellRow][i] = Colors.white;
+                    }
                   }
               }
-              sortedselectedMarks[indexCellRow] = List.of(selectedMarks[indexCellRow]..sort()).toString(); 
             });
-            print('selectedMarks : ');
-            print(selectedMarks);
-          //convertSelectedMarksToString(selectedMarks);
+
+          convertSelectedMarksToString(selectedMarks);
 
           }else{
             //採点モードのときだよーん
-            setState(() {            
-              answerList[indexCellRow].contains(mark) ?
-              answerList[indexCellRow].remove(mark):
-              answerList[indexCellRow].add(mark);        
-              
-              sortedanswerList[indexCellRow] = List.of(answerList[indexCellRow]..sort()).toString();
-              answerList.contains(mark)? borderColor = Colors.green : borderColor = Colors.red;
-              print('answerList : ');
-              print(answerList);
+            setState(() {
+              answerList[indexCellRow][index] = !answerList[indexCellRow][index];
               gradeQuestions();              
             });
           }
@@ -221,12 +210,12 @@ class _Marksheet extends State<Marksheet> {
             shape: BoxShape.circle,
             border: Border.all(
               color: borderColor,
-              width: isScoringMode && (borderColor != Colors.black38) ? 3.0 : 1.0,
+              width: isScoringMode && (borderColor == Colors.green || borderColor == Colors.red) ? 3.0 : 1.0,
               ),
           ),
           child: CircleAvatar(
             radius: 14,
-            backgroundColor: markColors[indexCellRow][index] ?  Colors.black45 : Colors.white,
+            backgroundColor: markColors[indexCellRow][index],
             child: Text(
               '${widget.marks[index]}',
               style: const TextStyle(fontSize: 15, color: Colors.black87),
@@ -242,9 +231,18 @@ class _Marksheet extends State<Marksheet> {
   void gradeQuestions() {
     setState(() {
       for (int i = 0; i < widget.numCellRows; i++) {
-        bool isAnswered = selectedMarks[i].isNotEmpty;
-        bool isQuestionCorrect = sortedselectedMarks[i] == sortedanswerList[i];
+        bool isAnswered = false;
+        bool isQuestionCorrect = true;
 
+        for (int j = 0; j < widget.marks.length; j++) {
+          if (selectedMarks[i][j]) {
+            isAnswered = true; //どれかしら回答している
+          }  
+          if (selectedMarks[i][j] != answerList[i][j]) {
+            isQuestionCorrect = false;
+            break;
+          }
+        }
         questionResults[i] = isAnswered && isQuestionCorrect;
       }
     });
@@ -268,27 +266,14 @@ class _Marksheet extends State<Marksheet> {
       ),
     );
   }
-
-  //DBに保存
-  Future<void> saveAnswertoDB(int marksheetId) async{
-    String answers = selectedMarks.map((subList) => subList.join(',')).join(';');
-    
-    final answerdata = {
+  //selectedmarksを10のみのデータに変換
+  Future convertSelectedMarksToString(List<List<bool>> selectedMarks) async {
+    String marksString = selectedMarks.map((row) => row.map((cell) => cell ? '1' : '0').join('')).join('');
+    final answerData = {
               'marksheet_id': widget.marksheetID, 
-              'answer':answers
+              'marks':marksString
             };
-    final updateCount = DatabaseHelper.instance.updateAnswer(marksheetId, answerdata);
-    if(updateCount == 0){
-      DatabaseHelper.instance.updateAnswer(marksheetId, answerdata);
-    }
-  }
-//DBから取得
-  Future<void> loadAnswersFromDatabase(int marksheetId) async {
-  final result = DatabaseHelper.instance.getAnswer(marksheetId);
-  print(result);
-  
-  setState(() {}); // UI更新
-  
+  await DatabaseHelper.instance.insertAnswer(answerData);
 }
 
   Widget buildControlButtons() {
@@ -318,9 +303,37 @@ class _Marksheet extends State<Marksheet> {
           );
   }
 
-  
+  void restoreSelectedMarks(int marksheetId) async {
+  // データベースから保存された回答を取得
+  final savedMarks = await DatabaseHelper.instance.getAnswer(marksheetId);
 
+  if (savedMarks != null) {
+    // 文字列データを List<List<bool>> に変換
+    List<List<bool>> restoredMarks = convertStringToSelectedMarks(savedMarks, widget.marks.length);
 
+    // 状態を更新
+    setState(() {
+      selectedMarks = restoredMarks;
+    });
+  }
+}
+
+List<List<bool>> convertStringToSelectedMarks(String marksString, int markTypesCount) {
+  List<List<bool>> result = [];
+  List<bool> currentRow = [];
+
+  for (int i = 0; i < marksString.length; i++) {
+    marksString[i] == 1 ? currentRow.add(true) : currentRow.add(false);
+
+    // 指定されたマークの種類数ごとに改行
+    if (currentRow.length == markTypesCount) {
+      result.add(currentRow);
+      currentRow = [];
+    }
+  }
+
+  return result;
+}
 
 
   @override
@@ -444,5 +457,9 @@ class _Marksheet extends State<Marksheet> {
         ),
     );
   }
+
+ 
+  
+
   
 }
