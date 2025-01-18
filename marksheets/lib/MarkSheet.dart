@@ -80,7 +80,6 @@ class _Marksheet extends State<Marksheet> {
     sortedanswerList = List.filled(widget.numCellRows, '');
 
     getAnswer(widget.marksheetID);
-    getCorrectAnswer(widget.marksheetID);
   }
 
   // hh:mm:ssのフォーマットに変換
@@ -210,7 +209,6 @@ class _Marksheet extends State<Marksheet> {
               answerList[indexCellRow].add(mark);        
               
               sortedanswerList[indexCellRow] = marksSorting(answerList[indexCellRow]);
-              saveCorrectAnswer(widget.marksheetID);
 
               answerList.contains(mark)? borderColor = Colors.green : borderColor = Colors.red;
               print('answerList : ');
@@ -330,59 +328,6 @@ class _Marksheet extends State<Marksheet> {
   }
 
   
-  setState(() {}); // UI更新
-  
-}
-
- //正解をDBに保存
-  Future<void> saveCorrectAnswer(int marksheetId) async{
-    String correct_answers = answerList.map((subList) => subList.isNotEmpty ? subList.join(',') : '').join(';');
-    print("Saving answers: $correct_answers"); // デバッグログを追加
-    
-    final answerdata = {
-              'marksheet_id': widget.marksheetID, 
-              'correct_answer':correct_answers
-            };
-    if (await DatabaseHelper.instance.doesCorrectAnswerExist(marksheetId)) {
-    // データが存在すれば更新
-    final updateCount = await DatabaseHelper.instance.updateCorrectAnswer(marksheetId, answerdata);
-    print("Update count: $updateCount"); // デバッグログ
-    print("Updated existing answer in database.");
-  } else {
-    // データが存在しなければ挿入
-    await DatabaseHelper.instance.insertCorrectAnswer(answerdata);
-    print("Inserted new answer into database.");
-  }
-  }
-//正解をDBから取得
-  Future<void> getCorrectAnswer(int marksheetId) async {
-
-  final result = await DatabaseHelper.instance.getCorrectAnswer(marksheetId);
-  print("Loaded result: $result"); // デバッグログを追加
-  if(result.isNotEmpty){// 取得したデータを復元
-    String encodedCorrectAnswers = result.first['correct_answer'];
-    print("Encoded Correctanswers: $encodedCorrectAnswers"); // デバッグログを追加
-    answerList = encodedCorrectAnswers
-        .split(';')
-        .map((subList) => subList.split(','))
-        .toList();
-    print("Decoded answerList: $answerList"); // デバッグログを追加
-
-    int minRows = widget.numCellRows;
-    answerList = answerList.take(minRows).toList();
-
-    while (answerList.length < widget.numCellRows) {
-        answerList.add([]);  
-    }
-    // markColors の更新
-    for (int row = 0; row < answerList.length; row++) {
-      sortedanswerList[row] = marksSorting(answerList[row]);
-    } 
-  } else {
-    // データが存在しない場合の処理（例: 初期化）
-    print("No data found for marksheetId: $marksheetId"); // デバッグログを追加
-    answerList = List.generate(widget.numCellRows, (_) => []);
-  }  
   setState(() {}); // UI更新
   
 }
