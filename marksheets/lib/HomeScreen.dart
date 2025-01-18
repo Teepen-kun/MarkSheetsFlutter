@@ -3,6 +3,7 @@ import 'SettingScreen.dart';
 import 'database_helper.dart';
 import 'HomePage.dart';
 import 'DetailsAndAppSettingPage.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -25,7 +26,7 @@ Widget build(BuildContext context) {
     body: Padding(
       padding: EdgeInsets.only(bottom: kBottomNavigationBarHeight),
       child: _pages[_currentIndex],
-    ), // 現在選択されているタブに対応するページを表示
+    ), 
     bottomNavigationBar: BottomNavigationBar(
       currentIndex: _currentIndex,
       onTap: (index) {

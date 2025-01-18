@@ -1,7 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:marksheets/SQLDebug.dart';
-import 'SettingScreen.dart';
 import 'HomeScreen.dart';
 import 'dart:async';
 import 'database_helper.dart';
@@ -51,6 +49,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'MarkSheetsApp',
       theme: ThemeData(
+        fontFamily: 'MPlusRounded',
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),

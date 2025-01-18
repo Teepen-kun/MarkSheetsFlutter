@@ -221,7 +221,7 @@ class _Marksheet extends State<Marksheet> {
         },
         child: Container(
           width: 30,
-          height: 30,
+          height: 30,  
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             border: Border.all(
@@ -325,7 +325,7 @@ class _Marksheet extends State<Marksheet> {
       for (int index = 0; index < widget.marks.length; index++) {        
         markColors[row][index] = selectedMarks[row].contains(widget.marks[index]);
       }
-    }
+    } 
       
     
   } else {
@@ -401,34 +401,75 @@ String marksSorting(List<String> list){
   return List.of(list..sort()).toString();
 }
 
-  Widget buildControlButtons() {
-    return Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                formatTime(remainingTime),
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(width: 10),
-              ElevatedButton(
-                onPressed: toggleTimer,
-                child: Text(isCountingDown ? "Stop" : (hasStarted ? "Restart" : "Start")),
-              ),
-              const SizedBox(width: 10),
-                ElevatedButton(
-                  onPressed: resetTimer,
-                  child: const Text("Reset"),
-                ),
-              SizedBox(width: 10),
-              ElevatedButton(
-                  onPressed: startScoring,
-                  child: Text(isScoringMode? "End Scoring" : "Start Scoring" ),
-              ),
-            ],
-          );
-  }
+Widget buildControlButtons() {
+  return Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween, // 左右に配置
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        // 開始/停止
+        OutlinedButton(
+          onPressed: toggleTimer,
+          style: ElevatedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 10), 
+            shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+          child: Text(isCountingDown ? "停止" : (hasStarted ? "再開" : "開始")),
+          
+        ),
 
-  
+        //残り時間
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              '残り時間',
+              style: const TextStyle(fontSize: 10),
+            ),
+            
+            Text(
+              formatTime(remainingTime),
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+        Column(
+          children: [
+            //解答入力
+            OutlinedButton(
+                  onPressed: startScoring,
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(80, 20), // ボタンを小さめに
+                    //padding: const EdgeInsets.symmetric(horizontal: 8),
+                  ),
+                  child: Text(isScoringMode ? "入力完了" : "解答入力",style: const TextStyle(fontSize: 10)),
+                ), 
+            OutlinedButton(
+              onPressed: resetTimer,
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size(80, 20), 
+                //padding: const EdgeInsets.symmetric(horizontal: 8),
+              ),
+              child: const Text("リセット" ,style: const TextStyle(fontSize: 10),),
+            )
+          ],
+        ),
+      
+      ],
+    ),
+  );
+}
+
+
+
+
+
+
+
+
 
 
 
@@ -474,7 +515,15 @@ String marksSorting(List<String> list){
               } catch (e) {
                 // エラー処理
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('エラー: データを取得できませんでした')),
+                  SnackBar(
+                    content: Text('エラー: データを取得できませんでした'),
+                    behavior: SnackBarBehavior.floating,
+                    margin: EdgeInsets.only(
+                        bottom: 10, 
+                        left: 16,
+                        right: 16,
+                      ),
+                    ),
                 );
     }
             },
@@ -484,10 +533,10 @@ String marksSorting(List<String> list){
       ),
         body: Column(
           children: [
-            // タイマーを配置する部分
+            // タイマーを等を配置する部分
             Container(
               color: Colors.grey[200], // タイマー部分に背景色を付ける
-              padding: const EdgeInsets.symmetric(vertical: 8.0),
+              padding: const EdgeInsets.symmetric(vertical: 4.0),
               child: buildControlButtons()
             ),
             Expanded(
@@ -530,7 +579,8 @@ String marksSorting(List<String> list){
               ),
             ),
             ),
-            // 点数表示用のContainer
+
+        // 点数表示用のContainer  
         if (isScoringMode)
           Container(
             color: Colors.blueAccent,

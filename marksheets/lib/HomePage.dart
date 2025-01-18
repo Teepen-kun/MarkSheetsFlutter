@@ -27,7 +27,8 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('ホーム'),
+        title: const Text('ホーム',style: TextStyle(
+      ),),
       ),
       body: FutureBuilder(
         future: _marksheetsFuture,
@@ -55,73 +56,75 @@ class _HomePageState extends State<HomePage> {
             itemCount: savedMarkSheets.length,
             itemBuilder: (context, index) {
               final sheet = savedMarkSheets[index];
-              return Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Stack(
-                  children: [
-                    //三点リーダ
-                    Positioned(
-                      top: 5,
-                      right: 5,
-                      child: PopupMenuButton<String>(
-                        onSelected: (value) {
-                          if (value == 'edit') {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => SettingScreen(
-                                  isNew: false,
-                                  existingData: sheet,
-                                ),
-                              ),
-                            ).then((_) => _fetchMarksheets());
-                          } else if (value == 'delete') {
-                            _deleteMarksheet(sheet['id']);
-                          }
-                        },
-                        itemBuilder: (context) => [
-                          const PopupMenuItem(
-                            value: 'edit',
-                            child: Text('編集'),
-                          ),
-                          const PopupMenuItem(
-                            value: 'delete',
-                            child: Text('削除'),
-                          ),
+              return GestureDetector(
+                onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => Marksheet(
+                                      marksheetID: sheet['id'],
+                                      title: sheet['title'],
+                                      numCellRows: sheet['numCellRows'],
+                                      marks: (sheet['markTypes'] as String).split(','),
+                                      isMultipleSelectionAllowed:
+                                          sheet['isMultipleSelectionAllowed'] == 1,
+                                      isTimeLimitEnabled: sheet['isTimeLimitEnabled'] == 1,
+                                      timelimit: sheet['timelimit'],
+                                    ),
+                                  ),
+                                );
+                              },
+                child: Card(
+                  elevation: 4,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Stack(
+                    children: [
+                      //シートの詳細
+                      Column(
+                        children: [
+                          const SizedBox(height: 25),
+                          ListTile(
+                              title: Text(sheet['title']),
+                              subtitle: Text('問題数: ${sheet['numCellRows']}'),
+                            ),
                         ],
                       ),
-                    ),
-                    //シートの詳細
-                    Column(
-                      children: [
-                        const SizedBox(height: 25),
-                        ListTile(
-                            title: Text(sheet['title']),
-                            subtitle: Text('問題数: ${sheet['numCellRows']}'),
-                            onTap: () {
+                      //三点リーダ
+                      Positioned(
+                        top: 5,
+                        right: 5,
+                        child: PopupMenuButton<String>(
+                          onSelected: (value) {
+                            if (value == 'edit') {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => Marksheet(
-                                    marksheetID: sheet['id'],
-                                    title: sheet['title'],
-                                    numCellRows: sheet['numCellRows'],
-                                    marks: (sheet['markTypes'] as String).split(','),
-                                    isMultipleSelectionAllowed:
-                                        sheet['isMultipleSelectionAllowed'] == 1,
-                                    isTimeLimitEnabled: sheet['isTimeLimitEnabled'] == 1,
-                                    timelimit: sheet['timelimit'],
+                                  builder: (context) => SettingScreen(
+                                    isNew: false,
+                                    existingData: sheet,
                                   ),
                                 ),
-                              );
-                            },
-                          ),
-                      ],
-                    ),
-                  ],
+                              ).then((_) => _fetchMarksheets());
+                            } else if (value == 'delete') {
+                              _deleteMarksheet(sheet['id']);
+                            }
+                          },
+                          itemBuilder: (context) => [
+                            const PopupMenuItem(
+                              value: 'edit',
+                              child: Text('編集'),
+                            ),
+                            const PopupMenuItem(
+                              value: 'delete',
+                              child: Text('削除'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               );
             },
@@ -134,7 +137,15 @@ class _HomePageState extends State<HomePage> {
   void _deleteMarksheet(int id) async {
     await DatabaseHelper().deleteMarksheet(id);
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('マークシートを削除しました')),
+      const SnackBar(
+        content: Text('マークシートを削除しました'),
+        behavior: SnackBarBehavior.floating,
+        margin: EdgeInsets.only(
+                bottom: 10, 
+                left: 16,
+                right: 16,
+              ),
+        ),
     );
     _fetchMarksheets(); // リストを再取得して更新
   }

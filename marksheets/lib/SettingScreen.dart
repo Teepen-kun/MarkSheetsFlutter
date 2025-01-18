@@ -246,7 +246,15 @@ class _SettingScreen extends State<SettingScreen>{
 
                     //await db.insert('marksheets', newSheet);
                     ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('マークシートを保存しました')),
+                    SnackBar(
+                      content: Text('マークシートを保存しました！！！'),
+                      behavior: SnackBarBehavior.floating,
+                      margin: EdgeInsets.only(
+                        bottom: 10, 
+                        left: 16,
+                        right: 16,
+                      ),
+                      ),
                   );
                     Navigator.push(
                         context,
@@ -291,7 +299,15 @@ class _SettingScreen extends State<SettingScreen>{
                       whereArgs: [id],
                     );*/
                       ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('マークシートを更新しました')),
+                      SnackBar(
+                        content: Text('マークシートを更新しました！！！'),
+                        behavior: SnackBarBehavior.floating,
+                        margin: EdgeInsets.only(
+                        bottom: 10, 
+                        left: 16,
+                        right: 16,
+                      ),        
+                      ),
                     );
                   }
                 /*
