@@ -56,28 +56,30 @@ class _Marksheet extends State<Marksheet> {
 
   @override 
   void initState(){ //widgetプロパティを使うため
-  super.initState();
-  remainingTime = widget.timelimit; // 初期残り時間をセット
-  questionResults = List.filled(widget.numCellRows, false);// 初期化時はすべて未採点（false）
+    super.initState();
+    remainingTime = widget.timelimit; // 初期残り時間をセット
+    questionResults = List.filled(widget.numCellRows, false);// 初期化時はすべて未採点（false）
   
 
-  selectedMarks = List.generate(
+    selectedMarks = List.generate(
     widget.numCellRows,
     (_) => []
-  );
+    );
 
-  answerList = List.generate(
-  widget.numCellRows,
-  (_) =>[]
-  );
+    answerList = List.generate(
+    widget.numCellRows,
+    (_) =>[]
+    );
 
-  markColors = List.generate(
+    markColors = List.generate(
     widget.numCellRows, 
     (indexCellRows) => List.filled(widget.marks.length, false)
     ); 
     
-  sortedselectedMarks = List.filled(widget.numCellRows, '');
-  sortedanswerList = List.filled(widget.numCellRows, '');
+    sortedselectedMarks = List.filled(widget.numCellRows, '');
+    sortedanswerList = List.filled(widget.numCellRows, '');
+
+    getAnswer(widget.marksheetID);
   }
 
   // hh:mm:ssのフォーマットに変換
@@ -193,10 +195,10 @@ class _Marksheet extends State<Marksheet> {
                     selectedMarks[indexCellRow].removeAt(0);
                   }
               }
-              sortedselectedMarks[indexCellRow] = List.of(selectedMarks[indexCellRow]..sort()).toString(); 
+              sortedselectedMarks[indexCellRow] = marksSorting(selectedMarks[indexCellRow]);
             });
-            print('selectedMarks : ');
-            print(selectedMarks);
+            saveAnswer(widget.marksheetID);
+            print('selectedMarks $selectedMarks');
           //convertSelectedMarksToString(selectedMarks);
 
           }else{
@@ -206,7 +208,8 @@ class _Marksheet extends State<Marksheet> {
               answerList[indexCellRow].remove(mark):
               answerList[indexCellRow].add(mark);        
               
-              sortedanswerList[indexCellRow] = List.of(answerList[indexCellRow]..sort()).toString();
+              sortedanswerList[indexCellRow] = marksSorting(answerList[indexCellRow]);
+
               answerList.contains(mark)? borderColor = Colors.green : borderColor = Colors.red;
               print('answerList : ');
               print(answerList);
@@ -270,25 +273,67 @@ class _Marksheet extends State<Marksheet> {
   }
 
   //DBに保存
-  Future<void> saveAnswertoDB(int marksheetId) async{
-    String answers = selectedMarks.map((subList) => subList.join(',')).join(';');
+  Future<void> saveAnswer(int marksheetId) async{
+    String answers = selectedMarks.map((subList) => subList.isNotEmpty ? subList.join(',') : '').join(';');
+    print("Saving answers: $answers"); // デバッグログを追加
     
     final answerdata = {
               'marksheet_id': widget.marksheetID, 
               'answer':answers
             };
-    final updateCount = DatabaseHelper.instance.updateAnswer(marksheetId, answerdata);
-    if(updateCount == 0){
-      DatabaseHelper.instance.updateAnswer(marksheetId, answerdata);
-    }
+    if (await DatabaseHelper.instance.doesAnswerExist(marksheetId)) {
+    // データが存在すれば更新
+    final updateCount = await DatabaseHelper.instance.updateAnswer(marksheetId, answerdata);
+    print("Update count: $updateCount"); // デバッグログ
+    print("Updated existing answer in database.");
+  } else {
+    // データが存在しなければ挿入
+    await DatabaseHelper.instance.insertAnswer(answerdata);
+    print("Inserted new answer into database.");
+  }
   }
 //DBから取得
-  Future<void> loadAnswersFromDatabase(int marksheetId) async {
-  final result = DatabaseHelper.instance.getAnswer(marksheetId);
-  print(result);
+  Future<void> getAnswer(int marksheetId) async {
+
+  final result = await DatabaseHelper.instance.getAnswer(marksheetId);
+  print("Loaded result: $result"); // デバッグログを追加
+  if(result.isNotEmpty){// 取得したデータを復元
+    String encodedAnswers = result.first['answer'];
+    print("Encoded answers: $encodedAnswers"); // デバッグログを追加
+    selectedMarks = encodedAnswers
+        .split(';')
+        .map((subList) => subList.split(','))
+        .toList();
+    print("Decoded selectedMarks: $selectedMarks"); // デバッグログを追加
+
+    int minRows = widget.numCellRows;
+    selectedMarks = selectedMarks.take(minRows).toList();
+
+    while (selectedMarks.length < widget.numCellRows) {
+        selectedMarks.add([]);  
+    }
+    // markColors の更新
+    for (int row = 0; row < selectedMarks.length; row++) {
+      sortedselectedMarks[row] = marksSorting(selectedMarks[row]);
+      for (int index = 0; index < widget.marks.length; index++) {        
+        markColors[row][index] = selectedMarks[row].contains(widget.marks[index]);
+      }
+    }
+      
+    
+  } else {
+    // データが存在しない場合の処理（例: 初期化）
+    print("No data found for marksheetId: $marksheetId"); // デバッグログを追加
+    selectedMarks = List.generate(widget.numCellRows, (_) => []);
+  }
+
   
   setState(() {}); // UI更新
   
+}
+
+String marksSorting(List<String> list){
+  return List.of(list..sort()).toString();
 }
 
   Widget buildControlButtons() {

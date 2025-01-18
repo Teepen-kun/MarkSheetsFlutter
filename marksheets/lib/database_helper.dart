@@ -54,7 +54,6 @@ class DatabaseHelper {
     // 回答データのテーブル作成
     await db.execute('''
       CREATE TABLE answers (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
         marksheet_id INTEGER NOT NULL,
         answer TEXT NOT NULL
       )
@@ -80,7 +79,7 @@ class DatabaseHelper {
   return await db.insert('marksheets', marksheet);
 }
 
-  Future<int> updateMarksheet(int id, Map<String, dynamic> updatedData) async {
+  Future<int> updateMarksheet(int id,  updatedData) async {
   final db = await database;
   return await db.update(
     'marksheets',
@@ -121,6 +120,7 @@ class DatabaseHelper {
   // 回答データ関連の操作
   Future<int> insertAnswer(Map<String, dynamic> answerData) async {
     final db = await database;
+    print("Inserting data: $answerData"); // デバッグログ
     return await db.insert('answers', answerData);
   }
 
@@ -130,30 +130,42 @@ class DatabaseHelper {
   }
 
   Future<int> updateAnswer(int marksheetId, Map<String, dynamic> updatedData) async {
-    final db = await database; // データベースインスタンスを取得
+    final db = await database; 
+    print("Updating marksheet_id: $marksheetId"); // デバッグログ
+    print("Update data: $updatedData"); // デバッグログ
+    
     return await db.update(
     'answers',
     updatedData,
-    where: 'id = ?',
+    where: 'marksheet_id = ?',
     whereArgs: [marksheetId],
     );
+
 }
 
-Future<String?> getAnswer(int marksheetId) async{
+ // marksheet_id のデータに紐づいた回答を取得
+  Future<List<Map<String, dynamic>>>getAnswer(int marksheetId) async{
   final db = await database;
 
-  // 指定された marksheet_id のデータに紐づいた回答を取得
+    List<Map<String, dynamic>> result = await db.query(
+    'answers',
+    where: 'marksheet_id = ?',
+    whereArgs: [marksheetId],
+  );
+  print("getAnswer result: $result");
+  return result;
+}
+
+Future<bool> doesAnswerExist(int marksheetId) async {
+  final db = await database;
   final result = await db.query(
     'answers',
     where: 'marksheet_id = ?',
     whereArgs: [marksheetId],
   );
-  if (result.isNotEmpty) {
-    return result.first['marks'] as String;
-  } else {
-    return null;
-  }
+  return result.isNotEmpty;
 }
+
 
 
   // 正解データ関連の操作
