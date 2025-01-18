@@ -120,19 +120,14 @@ class DatabaseHelper {
   // 回答データ関連の操作
   Future<int> insertAnswer(Map<String, dynamic> answerData) async {
     final db = await database;
-    print("Inserting data: $answerData"); // デバッグログ
+    
     return await db.insert('answers', answerData);
   }
 
-  Future<List<Map<String, dynamic>>> getAnswersByQuestion(int questionId) async {
-    final db = await database;
-    return await db.query('answers', where: 'question_id = ?', whereArgs: [questionId]);
-  }
 
   Future<int> updateAnswer(int marksheetId, Map<String, dynamic> updatedData) async {
     final db = await database; 
-    print("Updating marksheet_id: $marksheetId"); // デバッグログ
-    print("Update data: $updatedData"); // デバッグログ
+    
     
     return await db.update(
     'answers',
@@ -142,8 +137,6 @@ class DatabaseHelper {
     );
 
 }
-
- // marksheet_id のデータに紐づいた回答を取得
   Future<List<Map<String, dynamic>>>getAnswer(int marksheetId) async{
   final db = await database;
 
@@ -169,21 +162,47 @@ Future<bool> doesAnswerExist(int marksheetId) async {
 
 
   // 正解データ関連の操作
-  Future<int> insertCorrectAnswer(Map<String, dynamic> correctAnswerData) async {
+  Future<int> insertCorrectAnswer(Map<String, dynamic> answerData) async {
     final db = await database;
-    return await db.insert('correct_answers', correctAnswerData);
+    print("Inserting data: $answerData"); // デバッグログ
+    return await db.insert('correct_answers', answerData);
   }
 
-  Future<Map<String, dynamic>?> getCorrectAnswer(int questionId) async {
-    final db = await database;
-    final result = await db.query(
-      'correct_answers',
-      where: 'question_id = ?',
-      whereArgs: [questionId],
+
+  Future<int> updateCorrectAnswer(int marksheetId, Map<String, dynamic> updatedData) async {
+    final db = await database; 
+    print("Updating marksheet_id: $marksheetId"); // デバッグログ
+    print("Update data: $updatedData"); // デバッグログ
+    
+    return await db.update(
+    'correct_answers',
+    updatedData,
+    where: 'marksheet_id = ?',
+    whereArgs: [marksheetId],
     );
-    return result.isNotEmpty ? result.first : null;
-  }
-  
+
+}
+  Future<List<Map<String, dynamic>>>getCorrectAnswer(int marksheetId) async{
+  final db = await database;
+
+    List<Map<String, dynamic>> result = await db.query(
+    'correct_answers',
+    where: 'marksheet_id = ?',
+    whereArgs: [marksheetId],
+  );
+  print("getAnswer result: $result");
+  return result;
+}
+
+Future<bool> doesCorrectAnswerExist(int marksheetId) async {
+  final db = await database;
+  final result = await db.query(
+    'correct_answers',
+    where: 'marksheet_id = ?',
+    whereArgs: [marksheetId],
+  );
+  return result.isNotEmpty;
+}
 
 }
 
