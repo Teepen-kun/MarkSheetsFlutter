@@ -45,7 +45,16 @@ Widget build(BuildContext context) {
         ),
       ],
     ),
+    
     floatingActionButton: FloatingActionButton(
+      elevation: 0.0,
+      shape: RoundedRectangleBorder(
+                    side: BorderSide( 
+                    color: Theme.of(context).colorScheme.primary,
+                    width: 1.5
+                  ),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
       onPressed: () {
         Navigator.push(
           context,
@@ -57,7 +66,7 @@ Widget build(BuildContext context) {
       child: const Icon(Icons.add),
       tooltip: '新規マークシート作成',
     ),
-    floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked, // +ボタンを中央に配置
+    floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked, 
   );
 }
 

@@ -50,7 +50,7 @@ class MyApp extends StatelessWidget {
       title: 'MarkSheetsApp',
       theme: ThemeData(
         fontFamily: 'MPlusRounded',
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.green.shade100),
         useMaterial3: true,
       ),
       home: HomeScreen(), //DebugScreen()

@@ -27,7 +27,8 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('ホーム',style: TextStyle(
+        elevation: 0.0,
+        title: const Text('マークシート',style: TextStyle(
       ),),
       ),
       body: FutureBuilder(
@@ -77,6 +78,10 @@ class _HomePageState extends State<HomePage> {
                 child: Card(
                   elevation: 4,
                   shape: RoundedRectangleBorder(
+                    side: BorderSide( 
+                    color: Theme.of(context).colorScheme.primary,
+                    width: 3
+                  ),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Stack(
@@ -84,17 +89,22 @@ class _HomePageState extends State<HomePage> {
                       //シートの詳細
                       Column(
                         children: [
-                          const SizedBox(height: 25),
+                          const SizedBox(height: 20),
                           ListTile(
-                              title: Text(sheet['title']),
+                              title: Text(
+                                sheet['title'],
+                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold,color: Colors.black),
+                                overflow: TextOverflow.fade,
+                                maxLines: 2,
+                                  ),
                               subtitle: Text('問題数: ${sheet['numCellRows']}'),
                             ),
                         ],
                       ),
                       //三点リーダ
                       Positioned(
-                        top: 5,
-                        right: 5,
+                        top: 0,
+                        right: 0,
                         child: PopupMenuButton<String>(
                           onSelected: (value) {
                             if (value == 'edit') {

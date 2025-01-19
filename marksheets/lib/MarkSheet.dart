@@ -156,7 +156,7 @@ class _Marksheet extends State<Marksheet> {
   Widget buildMarkBox(int indexCellRow) {
   return Wrap(
     spacing: 4.0,
-    runSpacing: 4.0,
+    runSpacing: 2.0,
     alignment: WrapAlignment.center,
     children: List.generate(widget.marks.length, (index) {
       String mark = widget.marks[index]; //タップしたマーク
@@ -220,21 +220,21 @@ class _Marksheet extends State<Marksheet> {
           }
         },
         child: Container(
-          width: 30,
-          height: 30,  
+          width: 32,
+          height: 32,  
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             border: Border.all(
               color: borderColor,
-              width: isScoringMode && (borderColor != Colors.black38) ? 3.0 : 1.0,
+              width: isScoringMode && (borderColor != Colors.black38) ? 3.0 : 1.5,
               ),
-          ),
+            ),
           child: CircleAvatar(
-            radius: 14,
+            radius: 16,
             backgroundColor: markColors[indexCellRow][index] ?  Colors.black45 : Colors.white,
             child: Text(
               '${widget.marks[index]}',
-              style: const TextStyle(fontSize: 15, color: Colors.black87),
+              style: const TextStyle(fontSize: 15, color: Colors.black87,fontWeight: FontWeight.bold),
             ),
           ),
         ),
@@ -268,7 +268,7 @@ class _Marksheet extends State<Marksheet> {
       child: Center(
         child: Text(
           '${index + 1}',
-          style: const TextStyle(fontSize: 14, color: Colors.black),
+          style: const TextStyle(fontSize: 12, color: Colors.black,fontWeight: FontWeight.bold,),
         ),
       ),
     );
@@ -405,24 +405,120 @@ Widget buildControlButtons() {
   return Padding(
     padding: const EdgeInsets.symmetric(horizontal: 8.0),
     child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween, // 左右に配置
+      mainAxisAlignment: MainAxisAlignment.spaceBetween, 
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         // 開始/停止
         OutlinedButton(
           onPressed: toggleTimer,
+
           style: ElevatedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 10), 
+            padding: const EdgeInsets.symmetric(horizontal: 85, vertical: 12), 
+            backgroundColor: Colors.white,
             shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(10),
             ),
+            side: BorderSide( 
+              color: Theme.of(context).colorScheme.primary,
+              width: 3
+              ),
           ),
-          child: Text(isCountingDown ? "停止" : (hasStarted ? "再開" : "開始")),
+          child: Text(isCountingDown ? "停止" : (hasStarted ? "再開" : "開始"),style: TextStyle( fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black),),
           
         ),
 
-        //残り時間
-        Column(
+        const SizedBox(width: 10),
+        
+            //解答入力
+        OutlinedButton(
+              onPressed: startScoring,
+              
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12), 
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+              ),
+              side: BorderSide( 
+                width: 3,
+                color: Theme.of(context).colorScheme.primary,),
+              ),
+              child: isScoringMode ? 
+                Text( "完了",style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black)) :
+                Text.rich(
+                  TextSpan(
+                    children: [
+                      TextSpan(
+                        text: "解答入力\n", 
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black,
+                        ),
+                      ),
+                      TextSpan(
+                        text: "（採点）", 
+                        style: const TextStyle(
+                          fontSize: 7, 
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black,
+                          ),
+                        ),
+                      ],
+                    ),
+                    textAlign: TextAlign.center, // テキストを中央揃え
+                  ),
+            ), 
+        OutlinedButton(
+              onPressed: resetTimer,
+              style:ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 15), 
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                side: BorderSide(
+                  width: 3,
+                  color: Theme.of(context).colorScheme.primary,
+                  ),
+              ),
+              child: const Text("リセット" ,style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold,color: Colors.black),),
+            )
+          
+      
+      ],
+    ),
+  );
+}
+
+
+
+  @override
+  Widget build(BuildContext context) {
+    // 正解数の計算
+    int correctCount = questionResults.where((result) => result).length;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: 
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween, 
+              children: [
+                
+                Container(
+                  width: 180, 
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Text(widget.title,
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    overflow: TextOverflow.visible,
+                    maxLines: 1,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 20),
+                 //残り時間
+              Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
@@ -436,64 +532,19 @@ Widget buildControlButtons() {
             ),
           ],
         ),
-        Column(
-          children: [
-            //解答入力
-            OutlinedButton(
-                  onPressed: startScoring,
-                  style: OutlinedButton.styleFrom(
-                    minimumSize: const Size(80, 20), // ボタンを小さめに
-                    //padding: const EdgeInsets.symmetric(horizontal: 8),
+                    ],
                   ),
-                  child: Text(isScoringMode ? "入力完了" : "解答入力",style: const TextStyle(fontSize: 10)),
-                ), 
-            OutlinedButton(
-              onPressed: resetTimer,
-              style: OutlinedButton.styleFrom(
-                minimumSize: const Size(80, 20), 
-                //padding: const EdgeInsets.symmetric(horizontal: 8),
+                  leading: IconButton(
+                  icon: Icon(Icons.home),
+                  onPressed: () {
+                  // HomeScreen に戻る処理
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (context) => HomeScreen()),
+                          (route) => false,
+                );
+                },
               ),
-              child: const Text("リセット" ,style: const TextStyle(fontSize: 10),),
-            )
-          ],
-        ),
-      
-      ],
-    ),
-  );
-}
-
-
-
-
-
-
-
-
-
-
-
-
-  @override
-  Widget build(BuildContext context) {
-    // 正解数の計算
-    int correctCount = questionResults.where((result) => result).length;
-
-    return Scaffold(
-      appBar: AppBar(
-        title: 
-            Text(widget.title),
-            leading: IconButton(
-            icon: Icon(Icons.home),
-            onPressed: () {
-            // HomeScreen に戻る処理
-            Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(builder: (context) => HomeScreen()),
-              (route) => false,
-            );
-          },
-        ),
         actions: [
           IconButton(
             icon: Icon(Icons.settings), // 設定アイコン
@@ -535,7 +586,6 @@ Widget buildControlButtons() {
           children: [
             // タイマーを等を配置する部分
             Container(
-              color: Colors.grey[200], // タイマー部分に背景色を付ける
               padding: const EdgeInsets.symmetric(vertical: 4.0),
               child: buildControlButtons()
             ),
@@ -543,24 +593,34 @@ Widget buildControlButtons() {
               child: SingleChildScrollView(
               scrollDirection: Axis.vertical,
               child: Padding(
-                padding: const EdgeInsets.all(8.0),
+                padding: const EdgeInsets.all(5.0),
                 child: Table(
-                  border: TableBorder.all(color: Colors.grey), 
+                  border: TableBorder(
+                    horizontalInside: BorderSide(color: Colors.grey, width: 2.0), 
+                    verticalInside: BorderSide(color: Colors.grey, width: 2), 
+                    top: BorderSide(color: Theme.of(context).colorScheme.primary, width: 3), 
+                    bottom: BorderSide(color: Theme.of(context).colorScheme.primary, width: 3), 
+                    left: BorderSide(color: Theme.of(context).colorScheme.primary, width: 3), 
+                    right: BorderSide(color: Theme.of(context).colorScheme.primary, width: 3), 
+                  ),
                   columnWidths: const{
                     0: FixedColumnWidth(30)
                   },
                   children: List.generate(widget.numCellRows, (index) {
                     final Color rowColor = (index % 2 == 0) ? Colors.grey[200]! : Colors.white; //行ごとに少し色変える
                     return TableRow(
+                    
                       decoration: BoxDecoration(
                         color: rowColor,
+                        
                         //border: Border.all(width: 0.1, color: Colors.yellow),
                       ),
                       children: [
                         // 左側の行番号
                         TableCell(
                           verticalAlignment: TableCellVerticalAlignment.fill, // 行全体の高さに合わせる
-                          child: buildQuestionNumber(index)
+                          child: buildQuestionNumber(index),
+                          
                           ),
                         // マークが並んだセル
                         TableCell(
@@ -583,7 +643,7 @@ Widget buildControlButtons() {
         // 点数表示用のContainer  
         if (isScoringMode)
           Container(
-            color: Colors.blueAccent,
+            color: Theme.of(context).colorScheme.primary,
             padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
