@@ -10,6 +10,10 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   late Future<List<Map<String, dynamic>>> _marksheetsFuture;
+  List<Map<String, dynamic>> _marksheets = []; // 並び替え用リスト
+  String _sortCriteria = 'createdAt'; // デフォルト並び
+  bool _isAscending = false; // 昇順かどうか
+
 
   @override
   void initState() {
@@ -17,19 +21,93 @@ class _HomePageState extends State<HomePage> {
     _fetchMarksheets(); // 初期化時にデータを取得
   }
 
-  void _fetchMarksheets() {
+  void _fetchMarksheets() async {
     setState(() {
       _marksheetsFuture = DatabaseHelper().getMarksheets();
     });
   }
 
+  Widget deleteDialog(int id, String title){
+    return AlertDialog(
+      title: Text('$titleを削除しますか？'),
+      content: Text('回答データも削除されます'),
+      actions: <Widget>[
+        GestureDetector(
+          child: Text('いいえ'),
+          onTap: () {
+            Navigator.pop(context);
+          },
+        ),
+        GestureDetector(
+          child: Text('はい'),
+          onTap: (){
+            _deleteMarksheet(id);
+            Navigator.pop(context);
+            },
+        )
+      ],
+    );
+
+  }
+
+  void _deleteMarksheet(int id) async {
+    await DatabaseHelper().deleteMarksheet(id);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('マークシートを削除しました'),
+        behavior: SnackBarBehavior.floating,
+        margin: EdgeInsets.only(
+                bottom: 10, 
+                left: 16,
+                right: 16,
+              ),
+        ),
+    );
+    _fetchMarksheets(); // リストを再取得して更新
+  }
+
+    void _sortMarksheets() {
+    setState(() {
+      _marksheets.sort((a, b) {
+        final aValue = a[_sortCriteria];
+        final bValue = b[_sortCriteria];
+        if (_isAscending) {
+          return aValue.compareTo(bValue);
+        } else {
+          return bValue.compareTo(aValue);
+        }
+      });
+    });
+  }
+
+
   @override
   Widget build(BuildContext context) {
+    print(_marksheetsFuture);
     return Scaffold(
       appBar: AppBar(
         elevation: 0.0,
-        title: const Text('マークシート',style: TextStyle(
-      ),),
+        title: const Text('マークシート',style: TextStyle( fontWeight: FontWeight.bold, color: Colors.black),      
+        ),
+      actions: [
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              setState(() {
+                if (value == 'createdAt') {
+                  _sortCriteria = 'createdAt';
+                } else if (value == 'title') {
+                  _sortCriteria = 'title';
+                }
+                _isAscending = !_isAscending; // 昇順/降順を切り替え
+                _sortMarksheets(); // 並び替えを適用
+              });
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(value: 'createdAt', child: Text('作成日時順')),
+              const PopupMenuItem(value: 'title', child: Text('タイトル順')),
+            ],
+          ),
+        ],
       ),
       body: FutureBuilder(
         future: _marksheetsFuture,
@@ -118,7 +196,12 @@ class _HomePageState extends State<HomePage> {
                                 ),
                               ).then((_) => _fetchMarksheets());
                             } else if (value == 'delete') {
-                              _deleteMarksheet(sheet['id']);
+                              showDialog( 
+                                context: context,
+                                builder: (BuildContext context) {
+                                  return  deleteDialog(sheet['id'], sheet['title']);
+                                },
+                              );
                             }
                           },
                           itemBuilder: (context) => [
@@ -144,19 +227,4 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  void _deleteMarksheet(int id) async {
-    await DatabaseHelper().deleteMarksheet(id);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('マークシートを削除しました'),
-        behavior: SnackBarBehavior.floating,
-        margin: EdgeInsets.only(
-                bottom: 10, 
-                left: 16,
-                right: 16,
-              ),
-        ),
-    );
-    _fetchMarksheets(); // リストを再取得して更新
-  }
 }

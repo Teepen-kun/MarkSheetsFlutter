@@ -449,7 +449,7 @@ Widget buildControlButtons() {
                   TextSpan(
                     children: [
                       TextSpan(
-                        text: "解答入力\n", 
+                        text: "答え入力\n", 
                         style: const TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
@@ -470,7 +470,58 @@ Widget buildControlButtons() {
                   ),
             ), 
         OutlinedButton(
-              onPressed: resetTimer,
+              onPressed:(){ 
+                showDialog(
+                context: context,
+                builder: (context) {
+                  return SimpleDialog(
+                    title: Text("何をリセットしますか？",
+                      style:TextStyle(fontSize: 20, color: Colors.black87,fontWeight: FontWeight.bold)),
+                    children: <Widget>[
+                      Divider(
+                      color: Colors.grey, 
+                      thickness: 1.0,     
+                      indent: 10.0,       
+                      endIndent: 10.0,    
+                      ),
+                      SimpleDialogOption(
+                        onPressed: (){
+                          resetTimer();
+                          Navigator.pop(context);
+                          },
+                        child: Text("・タイマー",
+                          style:TextStyle( color: Colors.black87,fontWeight: FontWeight.bold)),
+                      ),
+                      
+                      
+
+                      SimpleDialogOption(
+                        onPressed: (){
+                          selectedMarks = List.generate(widget.numCellRows, (_) => []);
+                          markColors = List.generate(widget.numCellRows, (indexCellRows) => List.filled(widget.marks.length, false)); 
+                          questionResults = List.filled(widget.numCellRows, false);
+                          setState(() {});
+                          Navigator.pop(context);
+                          },
+                        child: Text("・解答",
+                          style:TextStyle( color: Colors.black87,fontWeight: FontWeight.bold)),
+                      ),
+                      
+                      SimpleDialogOption(
+                        onPressed: (){
+                          answerList = List.generate(widget.numCellRows, (_) => []);
+                          questionResults = List.filled(widget.numCellRows, false);
+                          setState(() {});
+                          Navigator.pop(context);
+                          },
+                        child: Text("・答え",
+                          style:TextStyle( color: Colors.black87,fontWeight: FontWeight.bold)),
+                      ),
+                    ],
+                  );
+                  },
+                );
+                },
               style:ElevatedButton.styleFrom(
                 backgroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 15), 
@@ -518,6 +569,7 @@ Widget buildControlButtons() {
                 ),
                 const SizedBox(width: 20),
                  //残り時間
+              if(widget.isTimeLimitEnabled)
               Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
