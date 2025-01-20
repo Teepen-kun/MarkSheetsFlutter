@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:marksheets/secret.dart';
 import 'MarkSheet.dart';
 import 'package:numberpicker/numberpicker.dart';
 import 'templates.dart';
 import 'database_helper.dart';
+import 'secret.dart';
 
 
 class SettingScreen extends StatefulWidget{
@@ -56,38 +58,12 @@ class _SettingScreen extends State<SettingScreen>{
     super.dispose();
   }
 
-  // データベースにマークシートを保存するメソッド
-  /*
-  Future<void> _saveMarksheet() async {
-    final database = await DatabaseHelper.instance.database;
-
-    final marksheetData = {
-      'title': _marksheetnameController.text.isNotEmpty
-          ? _marksheetnameController.text
-          : 'Untitled',
-      'numCellRows': int.tryParse(_numberofquestionController.text) ?? 1,
-      'markTypes': selectedMarkTypes.join(','),
-      'isMultipleSelectionAllowed': _isMultipleSelectionAllowed ? 1 : 0,
-      'isTimeLimitEnabled': _isTimeLimitEnabled ? 1 : 0,
-      'timelimit': _isTimeLimitEnabled
-          ? _timeLimitHour * 3600 + _timeLimitMinute * 60 + _timeLimitSecond
-          : 0,
-      'createdAt': DateTime.now().toIso8601String(),
-    };
-
-    await database.insert('marksheets', marksheetData);
-
-    // 保存完了メッセージ
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('マークシートを保存しました')),
-    );
-  }*/
 
 
   @override
   Widget build(BuildContext context){
     return Scaffold(
-        appBar: AppBar(title: Text('Settings')),
+        appBar: AppBar(title: Text('マークシート設定',style: TextStyle( fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black))),
         body: Padding(
         padding: const EdgeInsets.all(10.0),
         child: SingleChildScrollView(
@@ -95,31 +71,38 @@ class _SettingScreen extends State<SettingScreen>{
             //mainAxisAlignment: MainAxisAlignment.center,
             children: [
             // テンプレート選択プルダウン
-              DropdownButton<String>(
-                value: selectedTemplate,
-                items: templates.map((template) {
-                  return DropdownMenuItem<String>(
-                    value: template['name'],
-                    child: Text(template['name']),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    selectedTemplate = value!;
-                    final template = templates.firstWhere((template) => template['name'] == selectedTemplate);
-
-                    // 選択したテンプレートの値を設定する
-                    _marksheetnameController.text = selectedTemplate;
-                    _numberofquestionController.text = template['questions'].toString();
-                    selectedMarkTypes = List<String>.from(template['markTypes']);
-
-                    _isTimeLimitEnabled = template['isTimeLimitEnabled'];
-                    _timeLimitHour = template['timeLimitHour'];
-                    _timeLimitMinute = template['timeLimitMinute'];
-                    _timeLimitSecond = template['timeLimitSecond'];
-                    _isMultipleSelectionAllowed = template['isMultipleSelectionAllowed'];
-                  });
-                },
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween, 
+                children: [
+                  Text('テンプレート',style: TextStyle( fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black)),
+                  DropdownButton<String>(
+                    iconEnabledColor: Colors.black,
+                    value: selectedTemplate,
+                    items: templates.map((template) {
+                      return DropdownMenuItem<String>(
+                        value: template['name'],
+                        child: Text(template['name'],style: TextStyle( fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black)),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        selectedTemplate = value!;
+                        final template = templates.firstWhere((template) => template['name'] == selectedTemplate);
+                  
+                        // 選択したテンプレートの値を設定する
+                        _marksheetnameController.text = selectedTemplate;
+                        _numberofquestionController.text = template['questions'].toString();
+                        selectedMarkTypes = List<String>.from(template['markTypes']);
+                  
+                        _isTimeLimitEnabled = template['isTimeLimitEnabled'];
+                        _timeLimitHour = template['timeLimitHour'];
+                        _timeLimitMinute = template['timeLimitMinute'];
+                        _timeLimitSecond = template['timeLimitSecond'];
+                        _isMultipleSelectionAllowed = template['isMultipleSelectionAllowed'];
+                      });
+                    },
+                  ),
+                ],
               ),
 
               const SizedBox(height: 20),
@@ -127,16 +110,50 @@ class _SettingScreen extends State<SettingScreen>{
             //マークシート名入力欄
             TextField(
                 controller: _marksheetnameController,
-                decoration: InputDecoration(labelText: 'マークシート名'),//MarkSheetの名前
+                decoration: InputDecoration(
+                  labelText: 'マークシート名',
+                  labelStyle: TextStyle( 
+                  fontSize: 16, 
+                  fontWeight: FontWeight.bold, 
+                  color: Colors.black, // カラーを指定
+                ),
+                border: OutlineInputBorder(),
               ),
+                  ),//MarkSheetの名前
             const SizedBox(height: 20),
           
             //問題数入力欄
             TextField(
                 controller: _numberofquestionController,
-                decoration: InputDecoration(labelText: '問題数'),
+                decoration: InputDecoration(
+                  labelText: '問題数',
+                  labelStyle: TextStyle( 
+                  fontSize: 16, 
+                  fontWeight: FontWeight.bold, 
+                  color: Colors.black, // カラーを指定
+                ),
+                border: OutlineInputBorder(),
+              ),
                 keyboardType: TextInputType.number,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly], //数値限定
+                onChanged: (value) {
+                  int? inputNumber = int.tryParse(value);
+                  if (inputNumber != null && inputNumber > 300) {
+                    setState(() {
+                      _numberofquestionController.text = '300';
+                      _numberofquestionController.selection = TextSelection.fromPosition(
+                        TextPosition(offset: _numberofquestionController.text.length),
+                      );
+                    });
+                  }else if(inputNumber != null && inputNumber < 1){
+                    setState(() {
+                      _numberofquestionController.text = '1';
+                      _numberofquestionController.selection = TextSelection.fromPosition(
+                        TextPosition(offset: _numberofquestionController.text.length),
+                      );
+                    });
+                  }
+                },
               ),
             const SizedBox(height: 20),
           
@@ -144,7 +161,7 @@ class _SettingScreen extends State<SettingScreen>{
             Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text("時間を設定する"),
+                  Text("時間を設定する",style: TextStyle( fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black)),
                   Switch(
                     value: _isTimeLimitEnabled,
                     onChanged: (value) {
@@ -156,55 +173,58 @@ class _SettingScreen extends State<SettingScreen>{
                 ],
               ),
               if (_isTimeLimitEnabled)
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    //　時間（Hours）
-                    TimePickers(
-                      "時間",
-                      _timeLimitHour,
-                      5,
-                      (newValue) => setState(() => _timeLimitHour = newValue), // 値を更新に必要らしい
-                    ),
-                    Column(
-                      children: [
-                        Text(""),
-                        Text(" : ", style: TextStyle(fontWeight: FontWeight.bold)),
-                      ],
-                    ),
-                    //分(Minutes)
-                    TimePickers(
-                      "分", 
-                      _timeLimitHour == 5 ? _timeLimitMinute = 0 : _timeLimitMinute, 
-                      59,
-                      (newValue) => setState(() => _timeLimitMinute = newValue),
+                Container(
+                  margin: EdgeInsets.symmetric(vertical: 10.0), 
+                  padding: EdgeInsets.all(8.0), 
+                  decoration: BoxDecoration(
+                  color: Colors.white,
+                  border: Border.all(color: Colors.grey, width: 2.0), 
+                  borderRadius: BorderRadius.circular(10.0),  
+                ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      //　時間（Hours）
+                      TimePickers(
+                        "時間",
+                        _timeLimitHour,
+                        5,
+                        (newValue) => setState(() => _timeLimitHour = newValue), // 値を更新に必要らしい
                       ),
-                    Column(
-                      children: [
-                        Text(""),
-                        Text(" : ", style: TextStyle(fontWeight: FontWeight.bold)),
-                      ],
-                    ),
-                    //秒(Seconds)
-                    TimePickers(
-                      "秒",
-                      _timeLimitHour == 5 ? _timeLimitSecond = 0 : _timeLimitSecond,
-                      59,
-                      (newValue) => setState(() => _timeLimitSecond = newValue),
-                      )
-                  ],
+                      Column(
+                        children: [
+                          Text(""),
+                          Text(" : ", style: TextStyle(fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                      //分(Minutes)
+                      TimePickers(
+                        "分", 
+                        _timeLimitHour == 5 ? _timeLimitMinute = 0 : _timeLimitMinute, 
+                        59,
+                        (newValue) => setState(() => _timeLimitMinute = newValue),
+                        ),
+                      Column(
+                        children: [
+                          Text(""),
+                          Text(" : ", style: TextStyle(fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                      //秒(Seconds)
+                      TimePickers(
+                        "秒",
+                        _timeLimitHour == 5 ? _timeLimitSecond = 0 : _timeLimitSecond,
+                        59,
+                        (newValue) => setState(() => _timeLimitSecond = newValue),
+                        )
+                    ],
+                  ),
                 ),
               const SizedBox(height: 20),
-            
-              ElevatedButton(
-                onPressed: () => _showMarkSelectDialog(selectedMarkTypes),
-                child: Text("Select Mark Types"),
-              ),   
-
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text("複数選択を許可する"),
+                  Text("複数選択を許可する",style: TextStyle( fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black)),
                   Switch(
                     value: _isMultipleSelectionAllowed,
                     onChanged: (value) {
@@ -215,18 +235,78 @@ class _SettingScreen extends State<SettingScreen>{
                   ),
                 ],
               ),
-          
+              const SizedBox(height: 20),
+              OutlinedButton(
+                onPressed: () => _showMarkSelectDialog(selectedMarkTypes),
+
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 60, vertical: 12), 
+                    backgroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    side: BorderSide( 
+                      color: Theme.of(context).colorScheme.primary,
+                      width: 3
+                      ),
+                  ),
+                  child: Text("マークを編集",style: TextStyle( fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black),),        
+                ),
+              const SizedBox(height: 20),
+              Wrap(
+                      spacing: 4.0,
+                      runSpacing: 4.0,
+                      children: 
+                        List.generate(selectedMarkTypes.length, (index) =>CircleAvatar(
+                          radius: 20,
+                          backgroundColor: Colors.transparent, //透明
+                          child: Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.white,
+                              border: Border.all(color: Colors.black38, width: 2), 
+                            ),
+                            child: Center(
+                              child: Text(
+                                selectedMarkTypes[index],
+                                style: TextStyle(fontSize: 18,  fontWeight: FontWeight.bold, color: Colors.black),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ),
+                    ),
+            
+            const SizedBox(height: 40),
             //設定完了！！！！！！
             ElevatedButton(
-              child: Text('OK'),
+              child: Text('OK',style: TextStyle( fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black),),
+              style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 120, vertical: 12), 
+                    backgroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    side: BorderSide( 
+                      color: Theme.of(context).colorScheme.primary,
+                      width: 3
+                      ),
+                  ),
               onPressed: () async{
-                
+
+                if(SecretCode().checkInput(_marksheetnameController.text, context) == false){
+
                   int numberOfQuestions =  int.tryParse(_numberofquestionController.text)  ??  1 ;
                   if(numberOfQuestions <= 0) numberOfQuestions = 1;
+                  if (numberOfQuestions > 300) numberOfQuestions = 300;
 
                   final finalizednumberOfQuestions = numberOfQuestions;
-                  final _TimeLimit = 3600*_timeLimitHour + 60*_timeLimitMinute + _timeLimitSecond;//設定時間（秒）
-
+                  int _TimeLimit;
+                  if(_isTimeLimitEnabled){
+                    _TimeLimit = 3600*_timeLimitHour + 60*_timeLimitMinute + _timeLimitSecond;//設定時間（秒）
+                  }else{
+                    _TimeLimit = 0;
+                  }
                   final db = await DatabaseHelper.instance.database; 
                   // データベースに保存
                   final newSheet = {
@@ -246,9 +326,17 @@ class _SettingScreen extends State<SettingScreen>{
 
                     //await db.insert('marksheets', newSheet);
                     ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('マークシートを保存しました')),
+                    SnackBar(
+                      content: Text('マークシートを保存しました！！！'),
+                      behavior: SnackBarBehavior.floating,
+                      margin: EdgeInsets.only(
+                        bottom: 10, 
+                        left: 16,
+                        right: 16,
+                      ),
+                      ),
                   );
-                    Navigator.push(
+                    Navigator.pushAndRemoveUntil(
                         context,
                         MaterialPageRoute(
                           builder: (context) => Marksheet(
@@ -260,7 +348,7 @@ class _SettingScreen extends State<SettingScreen>{
                             isTimeLimitEnabled: newSheet['isTimeLimitEnabled'] == 1,
                             timelimit: newSheet['timelimit'] as int,
                           ),
-                        ),
+                        ),(route) => false,
                     );
                   } else {
                   // 更新
@@ -280,38 +368,22 @@ class _SettingScreen extends State<SettingScreen>{
                           timelimit: newSheet['timelimit'] as int,
                         ),
                       ),
-                      (route) => false, // これで戻る際に古い画面を削除
+                      (route) => false, // 戻る際に古い画面を削除
                     );
                                         
-                    /*
-                    await db.update(
-                      'marksheets',
-                      newSheet,
-                      where: 'id = ?',
-                      whereArgs: [id],
-                    );*/
                       ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('マークシートを更新しました')),
+                      SnackBar(
+                        content: Text('マークシートを更新しました！！！'),
+                        behavior: SnackBarBehavior.floating,
+                        margin: EdgeInsets.only(
+                        bottom: 10, 
+                        left: 16,
+                        right: 16,
+                      ),        
+                      ),
                     );
                   }
-                /*
-          
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => Marksheet(
-                      title: _marksheetnameController.text,
-                      numCellRows: numberOfQuestions,
-                      isTimeLimitEnabled:_isTimeLimitEnabled,
-                      timelimit: _TimeLimit,
-                      marks: selectedMarkTypes,
-                      isMultipleSelectionAllowed: _isMultipleSelectionAllowed
-                      ),
-                  )
-                );
-              */
-                
-          
+              }
               },
             )
           
@@ -324,14 +396,14 @@ class _SettingScreen extends State<SettingScreen>{
   Widget TimePickers(String Time, int _timeLimit, int max, ValueChanged<int> onChanged){ 
             return Column(
                     children: [
-                      Text(Time),
+                      Text(Time,style: TextStyle( fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black)),
                       Transform.scale(
                         scale: 0.8,
                         child: NumberPicker(
                           minValue: 0,
                           maxValue: max,
                           value: _timeLimit,
-                          itemHeight: 25,
+                          itemHeight: 35,
                           itemWidth: 50,
                           onChanged: onChanged,
                           infiniteLoop: true,
@@ -369,8 +441,8 @@ class _SettingScreen extends State<SettingScreen>{
   'や',       'ゆ',       'よ',
   'ら', 'り', 'る', 'れ', 'ろ',
   'わ',             'を', 'ん'
-];
-List<String> markCategory_Katakana = [
+  ];
+  List<String> markCategory_Katakana = [
   'ア', 'イ', 'ウ', 'エ', 'オ', 
   'カ', 'キ', 'ク', 'ケ', 'コ',
   'サ', 'シ', 'ス', 'セ', 'ソ',
@@ -381,22 +453,22 @@ List<String> markCategory_Katakana = [
   'ヤ',       'ユ',       'ヨ',
   'ラ', 'リ', 'ル', 'レ', 'ロ',
   'ワ',             'ヲ', 'ン'
-];
+  ];
 
-final List<String> markAllCategories = [
+  final List<String> markAllCategories = [
   ...markCategory_PlusMinus,
   ...markCategory_Number,
   ...markCategory_A2Z,
   ...markCategory_a2z,
   ...markCategory_Hiragana,
   ...markCategory_Katakana,
-];
+  ];
 
   showDialog(
     context: context,
     builder: (context) {
       return AlertDialog(
-        title: Text("選択肢の編集"),
+        title: Text("選択肢（マーク）の編集",style: TextStyle( fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black)),
         content: Container(
           width : 300,
           child: SingleChildScrollView(
@@ -406,9 +478,10 @@ final List<String> markAllCategories = [
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text("選択中のマーク"),
+                    Text("選択中のマーク",style: TextStyle( fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black)),
                     Wrap(
-                      spacing: 8.0,
+                      spacing: 4.0,
+                      runSpacing: 4.0,
                       children: 
                         List.generate(selectedMarkTypes.length, (index) =>CircleAvatar(
                         backgroundColor:Colors.grey,
@@ -436,7 +509,9 @@ final List<String> markAllCategories = [
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: (){setState(() {
+              Navigator.pop(context);
+            });} ,
             child: Text("OK"),
           ),
         ],
@@ -448,10 +523,11 @@ final List<String> markAllCategories = [
 ExpansionTile SelectMarksbyTypes(String title, List<String> MarkCategory, List<String> selectedMarkTypes, StateSetter SBsetState){
 
               return ExpansionTile(
-              title: Text(title),
+              title: Text(title,style: TextStyle( fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black)),
               children: [
                 Wrap(
-                  spacing: 8.0,
+                  spacing: 4.0,
+                  runSpacing: 4.0,
                   children: List.generate(MarkCategory.length, (index) {
                     final String mark = MarkCategory[index];
                     final bool isSelected = selectedMarkTypes.contains(mark);
@@ -479,9 +555,17 @@ ExpansionTile SelectMarksbyTypes(String title, List<String> MarkCategory, List<S
                       child: CircleAvatar(
                         backgroundColor: isSelected ? Colors.grey : Colors.white,
                         radius: 18,
-                        child: Text(
-                          mark,
-                          style: TextStyle(color: Colors.black, fontSize: 20),
+                        child: Container(
+                            decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.black38, width: 2), 
+                            ),
+                          child: Center(
+                            child: Text(
+                              mark,
+                              style: TextStyle(color: Colors.black, fontSize: 20),
+                            ),
+                          ),
                         ),
                       ),
                     );

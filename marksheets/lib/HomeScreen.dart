@@ -3,6 +3,7 @@ import 'SettingScreen.dart';
 import 'database_helper.dart';
 import 'HomePage.dart';
 import 'DetailsAndAppSettingPage.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -25,7 +26,7 @@ Widget build(BuildContext context) {
     body: Padding(
       padding: EdgeInsets.only(bottom: kBottomNavigationBarHeight),
       child: _pages[_currentIndex],
-    ), // 現在選択されているタブに対応するページを表示
+    ), 
     bottomNavigationBar: BottomNavigationBar(
       currentIndex: _currentIndex,
       onTap: (index) {
@@ -44,7 +45,16 @@ Widget build(BuildContext context) {
         ),
       ],
     ),
+    
     floatingActionButton: FloatingActionButton(
+      elevation: 0.0,
+      shape: RoundedRectangleBorder(
+                    side: BorderSide( 
+                    color: Theme.of(context).colorScheme.primary,
+                    width: 1.5
+                  ),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
       onPressed: () {
         Navigator.push(
           context,
@@ -56,7 +66,7 @@ Widget build(BuildContext context) {
       child: const Icon(Icons.add),
       tooltip: '新規マークシート作成',
     ),
-    floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked, // +ボタンを中央に配置
+    floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked, 
   );
 }
 
