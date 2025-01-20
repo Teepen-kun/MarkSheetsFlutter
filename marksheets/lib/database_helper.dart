@@ -70,8 +70,16 @@ class DatabaseHelper {
 
 //Marksheetのリストを表示
   Future<List<Map<String, dynamic>>> getMarksheets() async {
-  final db = await database; // 既にあるデータベースを取得
-  return await db.query('marksheets', orderBy: 'createdAt DESC'); // 作成日時順で取得
+  try {
+    final db = await database; // データベースの取得
+    print('Database acquired successfully');
+    final result = await db.query('marksheets', orderBy: 'createdAt DESC');
+    print('Query result: $result');
+    return  List<Map<String, dynamic>>.from(result);
+  } catch (error) {
+    print('Error in getMarksheets: $error');
+    throw error; // エラーを再スロー
+  }
 }
 
   Future<int> insertMarksheet(Map<String, dynamic> marksheet) async {

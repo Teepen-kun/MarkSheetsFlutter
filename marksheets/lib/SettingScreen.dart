@@ -301,8 +301,12 @@ class _SettingScreen extends State<SettingScreen>{
                   if (numberOfQuestions > 300) numberOfQuestions = 300;
 
                   final finalizednumberOfQuestions = numberOfQuestions;
-                  final _TimeLimit = 3600*_timeLimitHour + 60*_timeLimitMinute + _timeLimitSecond;//設定時間（秒）
-
+                  int _TimeLimit;
+                  if(_isTimeLimitEnabled){
+                    _TimeLimit = 3600*_timeLimitHour + 60*_timeLimitMinute + _timeLimitSecond;//設定時間（秒）
+                  }else{
+                    _TimeLimit = 0;
+                  }
                   final db = await DatabaseHelper.instance.database; 
                   // データベースに保存
                   final newSheet = {
@@ -332,7 +336,7 @@ class _SettingScreen extends State<SettingScreen>{
                       ),
                       ),
                   );
-                    Navigator.push(
+                    Navigator.pushAndRemoveUntil(
                         context,
                         MaterialPageRoute(
                           builder: (context) => Marksheet(
@@ -344,7 +348,7 @@ class _SettingScreen extends State<SettingScreen>{
                             isTimeLimitEnabled: newSheet['isTimeLimitEnabled'] == 1,
                             timelimit: newSheet['timelimit'] as int,
                           ),
-                        ),
+                        ),(route) => false,
                     );
                   } else {
                   // 更新
@@ -364,7 +368,7 @@ class _SettingScreen extends State<SettingScreen>{
                           timelimit: newSheet['timelimit'] as int,
                         ),
                       ),
-                      (route) => false, // これで戻る際に古い画面を削除
+                      (route) => false, // 戻る際に古い画面を削除
                     );
                                         
                       ScaffoldMessenger.of(context).showSnackBar(

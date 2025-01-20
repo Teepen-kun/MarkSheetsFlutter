@@ -33,7 +33,7 @@ class _Marksheet extends State<Marksheet> {
 
   late int remainingTime; // 残り時間
   Timer? _timer; // タイマーの管理
-  bool isCountingDown = false; // カウントダウンが開始しているかどうか
+  bool isCounting = false; // カウントが開始しているかどうか
   bool hasStarted = false; // タイマーが開始されたかどうか.
 
   // 試験モード(false)or採点モード(true)
@@ -93,7 +93,7 @@ class _Marksheet extends State<Marksheet> {
 
   // タイマーのスタート・ストップを切り替える
   void toggleTimer() {
-    if (isCountingDown) {
+    if (isCounting) {
       _stopTimer();
     } else {
       _startTimer();
@@ -102,18 +102,22 @@ class _Marksheet extends State<Marksheet> {
 
   // タイマーを開始
   void _startTimer() {
-    if (isCountingDown) return; // すでにカウントダウン中なら何もしない
+    if (isCounting) return; // すでにカウントダウン中なら何もしない
     setState(() {
-      isCountingDown = true;
+      isCounting = true;
       hasStarted = true;
     });
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       setState(() {
+        if(widget.isTimeLimitEnabled){
         if (remainingTime > 0) {
           remainingTime--;
         } else {
           timer.cancel();
-          isCountingDown = false;
+          isCounting = false;
+        }
+        }else{
+          remainingTime++;
         }
       });
     });
@@ -122,7 +126,7 @@ class _Marksheet extends State<Marksheet> {
   void _stopTimer() {
     _timer?.cancel();
     setState(() {
-      isCountingDown = false;
+      isCounting = false;
     });
   }
 
@@ -423,7 +427,7 @@ Widget buildControlButtons() {
               width: 3
               ),
           ),
-          child: Text(isCountingDown ? "停止" : (hasStarted ? "再開" : "開始"),style: TextStyle( fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black),),
+          child: Text(isCounting ? "停止" : (hasStarted ? "再開" : "開始"),style: TextStyle( fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black),),
           
         ),
 
@@ -569,12 +573,16 @@ Widget buildControlButtons() {
                 ),
                 const SizedBox(width: 20),
                  //残り時間
-              if(widget.isTimeLimitEnabled)
               Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            widget.isTimeLimitEnabled?
             const Text(
               '残り時間',
+              style: const TextStyle(fontSize: 10),
+            ) :
+            const Text(
+              '経過時間',
               style: const TextStyle(fontSize: 10),
             ),
             
@@ -636,7 +644,7 @@ Widget buildControlButtons() {
       ),
         body: Column(
           children: [
-            // タイマーを等を配置する部分
+            // ボタンを等を配置する部分
             Container(
               padding: const EdgeInsets.symmetric(vertical: 4.0),
               child: buildControlButtons()
