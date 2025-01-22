@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:sqflite/sqflite.dart';
 import 'dart:async';
 import 'HomeScreen.dart';
 import 'SettingScreen.dart';
@@ -9,19 +8,8 @@ class Marksheet extends StatefulWidget {
   const Marksheet(
       {super.key,
       required this.marksheetID,
-      required this.title,
-      required this.numCellRows,
-      required this.isTimeLimitEnabled,
-      required this.timelimit,
-      required this.marks,
-      required this.isMultipleSelectionAllowed});
+      });
   final int marksheetID; // マークシートのid
-  final String title;
-  final int numCellRows; //表示する行数
-  final bool isTimeLimitEnabled; //制限時間の可否
-  final int timelimit; //制限時間
-  final List<String> marks; //選択したマークの種類
-  final bool isMultipleSelectionAllowed; //複数選択の可否
 
   @override
   State<Marksheet> createState() => _Marksheet();
@@ -35,40 +23,70 @@ class _Marksheet extends State<Marksheet> {
 
   // 試験モード(false)or採点モード(true)
   bool isScoringMode = false;
+  // 正解数の計算
+  int correctCount = 0;
+  int nomarksCount = 0;
+  late String title; // マークシートタイトル
+  late int numCellRows; // 表示する行数
+  late bool isTimeLimitEnabled; // 制限時間の可否
+  late int timelimit; // 制限時間
+  late List<String> marks; // 選択したマークの種類
+  late bool isMultipleSelectionAllowed; // 複数選択の可否
+
 
   //各回答ごとのマーク
   late List<List<String>> selectedMarks; //選択済みマークの位置
-
   late List<List<String>> answerList; //正解のマークの位置
-
-  late List<bool> questionResults; // 問題ごとの正解状態
-
+  late List<int> questionResults; // 問題ごとの正解状態
   late List<List<bool>> markColors;
-
   late List<String> sortedselectedMarks; //回答と正解が一致するかどうかを判定するために使う
   late List<String> sortedanswerList;
 
+  bool isInitialized = false;
+
   @override
   void initState() {
-    //widgetプロパティを使うため
+    _fetchMarksheetData();
     super.initState();
-    remainingTime = widget.timelimit; // 初期残り時間をセット
-    questionResults =
-        List.filled(widget.numCellRows, false); // 初期化時はすべて未採点（false）
-
-    selectedMarks = List.generate(widget.numCellRows, (_) => []);
-
-    answerList = List.generate(widget.numCellRows, (_) => []);
-
-    markColors = List.generate(widget.numCellRows,
-        (indexCellRows) => List.filled(widget.marks.length, false));
-
-    sortedselectedMarks = List.filled(widget.numCellRows, '');
-    sortedanswerList = List.filled(widget.numCellRows, '');
-
-    getAnswer(widget.marksheetID);
-    getCorrectAnswer(widget.marksheetID);
   }
+
+  Future<void> _fetchMarksheetData() async {
+    final data = await DatabaseHelper().getMarksheet(widget.marksheetID);
+
+    if (data != null) {
+      
+      setState(() {
+        title = data['title'] as String;
+        numCellRows = data['numCellRows'] as int;
+        isTimeLimitEnabled = (data['isTimeLimitEnabled'] as int) == 1;
+        timelimit = data['timelimit'] as int;
+        marks = (data['markTypes'] as String).split(',');
+        isMultipleSelectionAllowed =
+            (data['isMultipleSelectionAllowed'] as int) == 1;
+
+        remainingTime = timelimit;
+        questionResults = List.filled(numCellRows, 1);
+        selectedMarks = List.generate(numCellRows, (_) => []);
+        answerList = List.generate(numCellRows, (_) => []);
+        markColors = List.generate(
+          numCellRows,
+          (index) => List.filled(marks.length, false),
+        );
+        sortedselectedMarks = List.filled(numCellRows, '');
+        sortedanswerList = List.filled(numCellRows, '');
+      });
+
+      getAnswer(widget.marksheetID);
+      getCorrectAnswer(widget.marksheetID);
+      isInitialized = true;
+    } else {
+      // データが見つからない場合のエラー処理
+      print('Marksheet with ID ${widget.marksheetID} not found.');
+    }
+  }
+
+
+  
 
   // hh:mm:ssのフォーマットに変換
   String formatTime(int seconds) {
@@ -96,7 +114,7 @@ class _Marksheet extends State<Marksheet> {
     });
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       setState(() {
-        if (widget.isTimeLimitEnabled) {
+        if (isTimeLimitEnabled) {
           if (remainingTime > 0) {
             remainingTime--;
           } else {
@@ -121,7 +139,7 @@ class _Marksheet extends State<Marksheet> {
   void resetTimer() {
     _stopTimer();
     setState(() {
-      remainingTime = widget.timelimit;
+      remainingTime = timelimit;
       hasStarted = false;
     });
   }
@@ -129,9 +147,9 @@ class _Marksheet extends State<Marksheet> {
   //採点開始！
   void startScoring() {
     gradeQuestions();
-    if (widget.isMultipleSelectionAllowed && selectedMarks == null) {
+    if (isMultipleSelectionAllowed && selectedMarks == null) {
       // 複数選択が許可されていてselectedMarksが初期化されていない場合、初期化する
-      selectedMarks = List.generate(widget.numCellRows, (_) => []);
+      selectedMarks = List.generate(numCellRows, (_) => []);
     }
     setState(() {
       isScoringMode = !isScoringMode;
@@ -150,8 +168,8 @@ class _Marksheet extends State<Marksheet> {
       spacing: 4.0,
       runSpacing: 2.0,
       alignment: WrapAlignment.center,
-      children: List.generate(widget.marks.length, (index) {
-        String mark = widget.marks[index]; //タップしたマーク
+      children: List.generate(marks.length, (index) {
+        String mark = marks[index]; //タップしたマーク
         Color borderColor = Colors.black38; // デフォルトの枠色
         //bool isCorrect = false; // 正解かどうかを保持
 
@@ -175,7 +193,7 @@ class _Marksheet extends State<Marksheet> {
               setState(() {
                 markColors[indexCellRow][index] =
                     !markColors[indexCellRow][index];
-                if (widget.isMultipleSelectionAllowed) {
+                if (isMultipleSelectionAllowed) {
                   //複数選択モード
                   selectedMarks[indexCellRow].contains(mark)
                       ? selectedMarks[indexCellRow].remove(mark)
@@ -186,10 +204,10 @@ class _Marksheet extends State<Marksheet> {
                       ? selectedMarks[indexCellRow].remove(mark)
                       : selectedMarks[indexCellRow].add(mark);
                   if (selectedMarks[indexCellRow].length > 1) {
-                    markColors[indexCellRow][widget.marks.indexWhere(
+                    markColors[indexCellRow][marks.indexWhere(
                         (element) =>
                             element == selectedMarks[indexCellRow][0])] = false;
-                    print(widget.marks.indexWhere((element) =>
+                    print(marks.indexWhere((element) =>
                         element == selectedMarks[indexCellRow][0]));
                     selectedMarks[indexCellRow].removeAt(0);
                   }
@@ -238,7 +256,7 @@ class _Marksheet extends State<Marksheet> {
                   ? Colors.black45
                   : Colors.white,
               child: Text(
-                '${widget.marks[index]}',
+                '${marks[index]}',
                 style: const TextStyle(
                     fontSize: 15,
                     color: Colors.black87,
@@ -254,20 +272,35 @@ class _Marksheet extends State<Marksheet> {
   // 回答の正誤
   void gradeQuestions() {
     setState(() {
-      for (int i = 0; i < widget.numCellRows; i++) {
+      for (int i = 0; i < numCellRows; i++) {
         bool isAnswered = selectedMarks[i].isNotEmpty;
         bool isQuestionCorrect = sortedselectedMarks[i] == sortedanswerList[i];
-
-        questionResults[i] = isAnswered && isQuestionCorrect;
+        if(!isAnswered){
+          questionResults[i] = 2; //無回答なら2
+        }else if(isAnswered && !isQuestionCorrect){
+          questionResults[i] = 1; //解答しているが不正解なら1
+        }else if(isAnswered && isQuestionCorrect){
+          questionResults[i] = 0; //正解なら0
+          
+        }
+        nomarksCount = questionResults.where((result) => result == 2).length;
+        correctCount = questionResults.where((result) => result == 0).length;
+        DatabaseHelper().updateScore(widget.marksheetID, correctCount);
       }
     });
   }
 
 // 問題番号セルの生成
   Widget buildQuestionNumber(int index) {
-    final Color bgColor = questionResults[index]
-        ? Colors.green // 正解の場合は緑
-        : Colors.red; // 不正解の場合は赤
+    Color bgColor = Colors.red;
+
+    if(questionResults[index] == 0){
+      bgColor = Colors.green; // 正解の場合は緑
+    }else if(questionResults[index] == 1){
+      bgColor = Colors.red; // 不正解の場合は赤
+    }else if(questionResults[index] == 2){
+      bgColor = Colors.yellow; //無回答は黄色
+    }
 
     return Container(
       //height: 50,
@@ -324,24 +357,24 @@ class _Marksheet extends State<Marksheet> {
           .toList();
       print("Decoded selectedMarks: $selectedMarks"); // デバッグログを追加
 
-      int minRows = widget.numCellRows;
+      int minRows = numCellRows;
       selectedMarks = selectedMarks.take(minRows).toList();
 
-      while (selectedMarks.length < widget.numCellRows) {
+      while (selectedMarks.length < numCellRows) {
         selectedMarks.add([]);
       }
       // markColors の更新
       for (int row = 0; row < selectedMarks.length; row++) {
         sortedselectedMarks[row] = marksSorting(selectedMarks[row]);
-        for (int index = 0; index < widget.marks.length; index++) {
+        for (int index = 0; index < marks.length; index++) {
           markColors[row][index] =
-              selectedMarks[row].contains(widget.marks[index]);
+              selectedMarks[row].contains(marks[index]);
         }
       }
     } else {
       // データが存在しない場合の処理（例: 初期化）
       print("No data found for marksheetId: $marksheetId"); // デバッグログを追加
-      selectedMarks = List.generate(widget.numCellRows, (_) => []);
+      selectedMarks = List.generate(numCellRows, (_) => []);
     }
 
     setState(() {}); // UI更新
@@ -388,10 +421,10 @@ class _Marksheet extends State<Marksheet> {
           .toList();
       print("Decoded answerList: $answerList"); // デバッグログを追加
 
-      int minRows = widget.numCellRows;
+      int minRows = numCellRows;
       answerList = answerList.take(minRows).toList();
 
-      while (answerList.length < widget.numCellRows) {
+      while (answerList.length < numCellRows) {
         answerList.add([]);
       }
       // markColors の更新
@@ -401,7 +434,7 @@ class _Marksheet extends State<Marksheet> {
     } else {
       // データが存在しない場合の処理（例: 初期化）
       print("No data found for marksheetId: $marksheetId"); // デバッグログを追加
-      answerList = List.generate(widget.numCellRows, (_) => []);
+      answerList = List.generate(numCellRows, (_) => []);
     }
     setState(() {}); // UI更新
   }
@@ -515,13 +548,13 @@ class _Marksheet extends State<Marksheet> {
                       SimpleDialogOption(
                         onPressed: () {
                           selectedMarks =
-                              List.generate(widget.numCellRows, (_) => []);
+                              List.generate(numCellRows, (_) => []);
                           markColors = List.generate(
-                              widget.numCellRows,
+                              numCellRows,
                               (indexCellRows) =>
-                                  List.filled(widget.marks.length, false));
+                                  List.filled(marks.length, false));
                           questionResults =
-                              List.filled(widget.numCellRows, false);
+                              List.filled(numCellRows, 1);
                           setState(() {});
                           Navigator.pop(context);
                         },
@@ -533,9 +566,9 @@ class _Marksheet extends State<Marksheet> {
                       SimpleDialogOption(
                         onPressed: () {
                           answerList =
-                              List.generate(widget.numCellRows, (_) => []);
+                              List.generate(numCellRows, (_) => []);
                           questionResults =
-                              List.filled(widget.numCellRows, false);
+                              List.filled(numCellRows, 1);
                           setState(() {});
                           Navigator.pop(context);
                         },
@@ -575,9 +608,11 @@ class _Marksheet extends State<Marksheet> {
 
   @override
   Widget build(BuildContext context) {
-    // 正解数の計算
-    int correctCount = questionResults.where((result) => result).length;
 
+    if (!isInitialized) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    
     return PopScope(
       canPop: false,
       child: Scaffold(
@@ -590,7 +625,7 @@ class _Marksheet extends State<Marksheet> {
                 child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Text(
-                    widget.title,
+                    title,
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                     overflow: TextOverflow.visible,
                     maxLines: 1,
@@ -602,7 +637,7 @@ class _Marksheet extends State<Marksheet> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  widget.isTimeLimitEnabled
+                  isTimeLimitEnabled
                       ? const Text(
                           '残り時間',
                           style: const TextStyle(fontSize: 10),
@@ -630,7 +665,7 @@ class _Marksheet extends State<Marksheet> {
                   builder: (BuildContext context) {
                     return AlertDialog(
                       title: Text('テストが実行中です！'),
-                      content: Text('画面が切り替わるとタイマーがリセットされます！(回答データは残ります！)'),
+                      content: Text('ホーム画面に戻るとタイマーがリセットされます！\n(回答データは残ります！)'),
                       actions: <Widget>[
                         GestureDetector(
                           child: Text('いいえ'),
@@ -665,58 +700,6 @@ class _Marksheet extends State<Marksheet> {
             IconButton(
               icon: Icon(Icons.settings), // 設定アイコン
               onPressed: () async {
-                if (hasStarted) {
-                  showDialog(
-                    context: context,
-                    builder: (BuildContext context) {
-                      return AlertDialog(
-                        title: Text('テストが実行中です！'),
-                        content: Text('画面が切り替わるとタイマーがリセットされます！(回答データは残ります！)'),
-                        actions: <Widget>[
-                          GestureDetector(
-                            child: Text('いいえ'),
-                            onTap: () {
-                              Navigator.pop(context);
-                            },
-                          ),
-                          GestureDetector(
-                              child: Text('はい'),
-                              onTap: () async {
-                                try {
-                                  // データベースから現在のマークシート情報を取得
-                                  final marksheetData = await DatabaseHelper()
-                                      .getMarksheet(widget.marksheetID);
-      
-                                  // SettingScreen に遷移
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => SettingScreen(
-                                        isNew: false,
-                                        existingData: marksheetData,
-                                      ),
-                                    ),
-                                  );
-                                } catch (e) {
-                                  // エラー処理
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text('エラー: データを取得できませんでした'),
-                                      behavior: SnackBarBehavior.floating,
-                                      margin: EdgeInsets.only(
-                                        bottom: 10,
-                                        left: 16,
-                                        right: 16,
-                                      ),
-                                    ),
-                                  );
-                                }
-                              })
-                        ],
-                      );
-                    },
-                  );
-                } else {
                   try {
                     // データベースから現在のマークシート情報を取得
                     final marksheetData =
@@ -746,7 +729,6 @@ class _Marksheet extends State<Marksheet> {
                       ),
                     );
                   }
-                }
               },
             ),
           ],
@@ -777,7 +759,7 @@ class _Marksheet extends State<Marksheet> {
                           color: Theme.of(context).colorScheme.primary, width: 3),
                     ),
                     columnWidths: const {0: FixedColumnWidth(30)},
-                    children: List.generate(widget.numCellRows, (index) {
+                    children: List.generate(numCellRows, (index) {
                       final Color rowColor = (index % 2 == 0)
                           ? Colors.grey[200]!
                           : Colors.white; //行ごとに少し色変える
@@ -827,7 +809,7 @@ class _Marksheet extends State<Marksheet> {
                       style: TextStyle(fontSize: 18, color: Colors.white),
                     ),
                     Text(
-                      "$correctCount / ${widget.numCellRows}",
+                      "$correctCount / ${numCellRows}",
                       style: const TextStyle(fontSize: 18, color: Colors.white),
                     ),
                   ],

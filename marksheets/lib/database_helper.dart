@@ -47,7 +47,8 @@ class DatabaseHelper {
         isTimeLimitEnabled INTEGER NOT NULL,
         timelimit INTEGER NOT NULL,
         isMultipleSelectionAllowed INTEGER NOT NULL,
-        createdAt TEXT NOT NULL
+        createdAt TEXT NOT NULL,
+        score INTEGER
       )
     ''');
 
@@ -96,6 +97,17 @@ class DatabaseHelper {
     whereArgs: [id],
   );
 }
+
+Future<void> updateScore(int id, int? score) async {
+  final db = await database;
+  await db.update(
+    'marksheets',
+    {'score': score},
+    where: 'id = ?',
+    whereArgs: [id],
+  );
+}
+
   Future<int> deleteMarksheet(int id) async {
   final db = await database;
   return await db.delete(

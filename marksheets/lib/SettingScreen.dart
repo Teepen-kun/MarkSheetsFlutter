@@ -5,7 +5,6 @@ import 'MarkSheet.dart';
 import 'package:numberpicker/numberpicker.dart';
 import 'templates.dart';
 import 'database_helper.dart';
-import 'secret.dart';
 
 class SettingScreen extends StatefulWidget {
   final bool isNew; // 新規作成か更新か
@@ -406,14 +405,6 @@ class _SettingScreen extends State<SettingScreen> {
                             MaterialPageRoute(
                               builder: (context) => Marksheet(
                                 marksheetID: insertedID,
-                                title: newSheet['title'] as String,
-                                numCellRows: newSheet['numCellRows'] as int,
-                                marks: selectedMarkTypes, // マークリストをそのまま渡す
-                                isMultipleSelectionAllowed:
-                                    newSheet['isMultipleSelectionAllowed'] == 1,
-                                isTimeLimitEnabled:
-                                    newSheet['isTimeLimitEnabled'] == 1,
-                                timelimit: newSheet['timelimit'] as int,
                               ),
                             ),
                           );
@@ -427,14 +418,6 @@ class _SettingScreen extends State<SettingScreen> {
                             MaterialPageRoute(
                               builder: (context) => Marksheet(
                                 marksheetID: id,
-                                title: newSheet['title'] as String,
-                                numCellRows: newSheet['numCellRows'] as int,
-                                marks: selectedMarkTypes,
-                                isMultipleSelectionAllowed:
-                                    newSheet['isMultipleSelectionAllowed'] == 1,
-                                isTimeLimitEnabled:
-                                    newSheet['isTimeLimitEnabled'] == 1,
-                                timelimit: newSheet['timelimit'] as int,
                               ),
                             ),
                             (route) => false, // 戻る際に古い画面を削除
