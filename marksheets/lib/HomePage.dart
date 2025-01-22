@@ -1,8 +1,10 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'database_helper.dart';
 import 'MarkSheet.dart';
 import 'SettingScreen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:fl_chart/fl_chart.dart';
 
 class HomePage extends StatefulWidget {
   @override
@@ -29,19 +31,18 @@ class _HomePageState extends State<HomePage> {
   void _fetchMarksheets() {
     setState(() {
       _marksheetsFuture = DatabaseHelper().getMarksheets().then((data) {
-      if (data.isNotEmpty) {
-        _marksheets = data;
-        _sortMarksheets();
-      } else {
-        _marksheets = [];
-      }
-      return _marksheets;
-    }).catchError((error) {
-      print('Error in _fetchMarksheets: $error');
-      throw error;
+        if (data.isNotEmpty) {
+          _marksheets = data;
+          _sortMarksheets();
+        } else {
+          _marksheets = [];
+        }
+        return _marksheets;
+      }).catchError((error) {
+        print('Error in _fetchMarksheets: $error');
+        throw error;
+      });
     });
-    });
-    
   }
 
   Widget deleteDialog(int id, String title) {
@@ -97,44 +98,40 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _loadPreferences() async {
-  final prefs = await SharedPreferences.getInstance();
-  setState(() {
-    _isAscending = prefs.getBool('isAscending') ?? false; 
-    _sortBy = prefs.getString('sortBy') ?? 'createdAt';
-    final savedViewIndex = prefs.getInt('viewIndex') ?? 0; 
-    _isViewSelected = [false, false];
-    _isViewSelected[savedViewIndex] = true;
-  });
-}
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _isAscending = prefs.getBool('isAscending') ?? false;
+      _sortBy = prefs.getString('sortBy') ?? 'createdAt';
+      final savedViewIndex = prefs.getInt('viewIndex') ?? 0;
+      _isViewSelected = [false, false];
+      _isViewSelected[savedViewIndex] = true;
+    });
+  }
 
-Future<void> _savePreferences() async {
-  final prefs = await SharedPreferences.getInstance();
-  await prefs.setBool('isAscending', _isAscending);
-  await prefs.setString('sortKey', _sortBy); 
-  final viewIndex = _isViewSelected.indexWhere((isSelected) => isSelected);
-  await prefs.setInt('viewIndex', viewIndex);
-}
-
-
-
+  Future<void> _savePreferences() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('isAscending', _isAscending);
+    await prefs.setString('sortKey', _sortBy);
+    final viewIndex = _isViewSelected.indexWhere((isSelected) => isSelected);
+    await prefs.setInt('viewIndex', viewIndex);
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(
-            elevation: 0.0,
-            title: const Text(
-              'マークシート',
-              style:
-                  TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
+          elevation: 0.0,
+          title: const Text(
+            'マークシート',
+            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
+          ),
+          actions: [
+            IconButton(
+              icon: Icon(Icons.search),
+              onPressed: () {},
             ),
-            actions: [
-              IconButton(
-                icon: Icon(Icons.search),
-                onPressed: () {
-                },
-              ),
-            ],),
+          ],
+        ),
         body: Column(children: [
           Container(
               padding: const EdgeInsets.symmetric(vertical: 4.0),
@@ -191,7 +188,10 @@ Future<void> _savePreferences() async {
                         },
                       );
                     } else {
-                      _isViewSelected = [true,false,];
+                      _isViewSelected = [
+                        true,
+                        false,
+                      ];
                       return const Center(child: Text('error'));
                     }
                   }))
@@ -294,23 +294,7 @@ Future<void> _savePreferences() async {
       child: Stack(
         children: [
           //シートの詳細
-          Column(
-            children: [
-              const SizedBox(height: 20),
-              ListTile(
-                title: Text(
-                  sheet['title'],
-                  style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black),
-                  overflow: TextOverflow.fade,
-                  maxLines: 2,
-                ),
-                subtitle: Text('問題数: ${sheet['numCellRows']}'),
-              ),
-            ],
-          ),
+          CardLayout(sheet),
           //三点リーダ
           Positioned(
             top: 0,
@@ -353,24 +337,118 @@ Future<void> _savePreferences() async {
     );
   }
 
+  Widget CardLayout(Map<String, dynamic> sheet) {
+    final score = sheet['score'];
+    final totalQuestions = sheet['numCellRows'];
+    final title = sheet['title'];
+    final displayScore = score ?? 0; //scoreがnullなら0
+    final isNullScore = score == null;
+
+    final completedRatio =
+        totalQuestions > 0 ? displayScore / totalQuestions : 0.1;
+    final remainingRatio = 1.0 - completedRatio;
+
+    //GridViewのとき
+    if (_isViewSelected[0] && !_isViewSelected[1]) {
+      return Column(
+        children: [
+          const SizedBox(height: 20),
+          ListTile(
+            title: Text(
+              title,
+              style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black),
+              overflow: TextOverflow.fade,
+              maxLines: 2,
+            ),
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            height: 120,
+            width: 120,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                // 円グラフ
+                PieChart(
+                  PieChartData(
+                    startDegreeOffset: 270,
+                    sections: [
+                      if (displayScore > 0)
+                        PieChartSectionData(
+                          value: completedRatio,
+                          title: '',
+                          color: Theme.of(context).colorScheme.primary, //正解の割合
+                          radius: 25,
+                        ),
+                      if (displayScore < totalQuestions)
+                        PieChartSectionData(
+                            value: remainingRatio, //不正解の割合
+                            title: '',
+                            color: Colors.grey,
+                            radius: 25),
+                    ],
+                    sectionsSpace: 0,
+                    centerSpaceRadius: 40,
+                  ),
+                ),
+                // 円グラフの中心に表示するテキスト
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      isNullScore ? '-' : displayScore.toString(),
+                      style: const TextStyle(
+                          fontSize: 20, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '/ $totalQuestions',
+                      style: const TextStyle(fontSize: 14, color: Colors.grey),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+    } else if (_isViewSelected[1] && !_isViewSelected[0]) {
+      return Column(
+        children: [
+          ListTile(
+            title: Text(
+              sheet['title'],
+              style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black),
+              overflow: TextOverflow.fade,
+              maxLines: 2,
+            ),
+            subtitle: Text('問題数: ${sheet['numCellRows']}'),
+          ),
+        ],
+      );
+    } else {
+      return Container(
+        child: Text("それはエラーすぎ"),
+      );
+    }
+  }
+
   void PassData(Map<String, dynamic> sheet) {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => Marksheet(
-          marksheetID: sheet['id'],
-          title: sheet['title'],
-          numCellRows: sheet['numCellRows'],
-          marks: (sheet['markTypes'] as String).split(','),
-          isMultipleSelectionAllowed: sheet['isMultipleSelectionAllowed'] == 1,
-          isTimeLimitEnabled: sheet['isTimeLimitEnabled'] == 1,
-          timelimit: sheet['timelimit'],
-        ),
+        builder: (context) => Marksheet(marksheetID: sheet['id']),
       ),
     ).then((isUpdated) {
-  if (isUpdated == true) {
-    _fetchMarksheets(); // データを再取得
-  }
-});;
+      if (isUpdated == true) {
+        _fetchMarksheets(); // データを再取得
+      }
+    });
   }
 }
