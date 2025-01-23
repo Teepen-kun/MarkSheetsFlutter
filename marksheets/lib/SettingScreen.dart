@@ -28,7 +28,7 @@ class _SettingScreen extends State<SettingScreen> {
   final List<String> markTypes = ['a-z', 'A-Z', '0-9', '+-', 'あ-ん', 'ア-ン'];
   List<String> selectedMarkTypes = ['1', '2', '3', '4'];
   bool _isMultipleSelectionAllowed = false; //複数選択の可否
-
+  List<String> preMarks = [];
   String selectedTemplate = 'Custom'; //テンプレ
 
   @override
@@ -46,6 +46,8 @@ class _SettingScreen extends State<SettingScreen> {
       _timeLimitMinute = (timelimit % 3600) ~/ 60;
       _timeLimitSecond = timelimit % 60;
       _isMultipleSelectionAllowed = data['isMultipleSelectionAllowed'] == 1;
+
+      preMarks = List.of(selectedMarkTypes);
     }
   }
 
@@ -349,92 +351,42 @@ class _SettingScreen extends State<SettingScreen> {
                           width: 3),
                     ),
                     onPressed: () async {
-                      if (SecretCode().checkInput(
-                              _marksheetnameController.text, context) ==
-                          false) {
-                        int numberOfQuestions =
-                            int.tryParse(_numberofquestionController.text) ?? 1;
-                        if (numberOfQuestions <= 0) numberOfQuestions = 1;
-                        if (numberOfQuestions > 300) numberOfQuestions = 300;
+                      print('A = $selectedMarkTypes, B = $preMarks');
+                      
 
-                        final finalizednumberOfQuestions = numberOfQuestions;
-                        int _TimeLimit;
-                        if (_isTimeLimitEnabled) {
-                          _TimeLimit = 3600 * _timeLimitHour +
-                              60 * _timeLimitMinute +
-                              _timeLimitSecond; //設定時間（秒）
-                        } else {
-                          _TimeLimit = 0;
-                        }
-                        final db = await DatabaseHelper.instance.database;
-                        // データベースに保存
-                        final newSheet = {
-                          'title': _marksheetnameController.text == ''
-                              ? '無題'
-                              : _marksheetnameController.text,
-                          'numCellRows': finalizednumberOfQuestions,
-                          'isTimeLimitEnabled': _isTimeLimitEnabled ? 1 : 0,
-                          'timelimit': _TimeLimit,
-                          'markTypes':
-                              selectedMarkTypes.join(','), // リストをカンマ区切りで保存
-                          'isMultipleSelectionAllowed':
-                              _isMultipleSelectionAllowed ? 1 : 0,
-                          'createdAt': DateTime.now().toIso8601String(),
-                        };
-
-                        if (widget.isNew) {
-                          //新規作成
-                          final insertedID =
-                              await DatabaseHelper().insertMarksheet(newSheet);
-                          newSheet['id'] = insertedID;
-
-                          //await db.insert('marksheets', newSheet);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('マークシートを保存しました！！！'),
-                              behavior: SnackBarBehavior.floating,
-                              margin: EdgeInsets.only(
-                                bottom: 10,
-                                left: 16,
-                                right: 16,
-                              ),
-                            ),
-                          );
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => Marksheet(
-                                marksheetID: insertedID,
-                              ),
-                            ),
-                          );
-                        } else {
-                          // 更新
-                          final id = widget.existingData!['id'];
-                          DatabaseHelper().updateMarksheet(id, newSheet);
-
-                          Navigator.pushAndRemoveUntil(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => Marksheet(
-                                marksheetID: id,
-                              ),
-                            ),
-                            (route) => false, // 戻る際に古い画面を削除
-                          );
-                          
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('マークシートを更新しました！！！'),
-                              behavior: SnackBarBehavior.floating,
-                              margin: EdgeInsets.only(
-                                bottom: 10,
-                                left: 16,
-                                right: 16,
-                              ),
-                            ),
-                          );
-                        }
+                      if (selectedMarkTypes.length >= preMarks.length &&
+                          preMarks.every((element) => selectedMarkTypes.contains(element)) ||
+                          widget.isNew) {
+                        PassData();
+                      } else {
+                        showDialog(
+                          context: context,
+                          builder: (BuildContext context) {
+                            return AlertDialog(
+                              title: Text('注意:マークが編集されました！'),
+                              content: Text('編集前に使用していたマークを削除すると解答データが削除されます！'),
+                              actions: <Widget>[
+                                GestureDetector(
+                                  child: Text('いいえ'),
+                                  onTap: () {
+                                    Navigator.pop(context);
+                                  },
+                                ),
+                                GestureDetector(
+                                    child: Text('はい'),
+                                    onTap: () {
+                                      DatabaseHelper().updateMarksheet(
+                                          widget.existingData!['id'], {
+                                        'score' : null,
+                                        'answers': null,
+                                        'correctAnswers': null
+                                      });
+                                      PassData();
+                                    })
+                              ],
+                            );
+                          },
+                        );
                       }
                     },
                   )
@@ -475,6 +427,93 @@ class _SettingScreen extends State<SettingScreen> {
         ),
       ],
     );
+  }
+
+  void PassData() async {
+    if (SecretCode().checkInput(_marksheetnameController.text, context) ==
+        false) {
+      int numberOfQuestions =
+          int.tryParse(_numberofquestionController.text) ?? 1;
+      if (numberOfQuestions <= 0) numberOfQuestions = 1;
+      if (numberOfQuestions > 300) numberOfQuestions = 300;
+
+      final finalizednumberOfQuestions = numberOfQuestions;
+      int _TimeLimit;
+      if (_isTimeLimitEnabled) {
+        _TimeLimit = 3600 * _timeLimitHour +
+            60 * _timeLimitMinute +
+            _timeLimitSecond; //設定時間（秒）
+      } else {
+        _TimeLimit = 0;
+      }
+
+      final db = await DatabaseHelper.instance.database;
+      // データベースに保存
+      final newSheet = {
+        'title': _marksheetnameController.text == ''
+            ? '無題'
+            : _marksheetnameController.text,
+        'numCellRows': finalizednumberOfQuestions,
+        'isTimeLimitEnabled': _isTimeLimitEnabled ? 1 : 0,
+        'timelimit': _TimeLimit,
+        'markTypes': selectedMarkTypes.join(','), // リストをカンマ区切りで保存
+        'isMultipleSelectionAllowed': _isMultipleSelectionAllowed ? 1 : 0,
+        'createdAt': DateTime.now().toIso8601String(),
+      };
+
+      if (widget.isNew) {
+        //新規作成
+        final insertedID = await DatabaseHelper().insertMarksheet(newSheet);
+        newSheet['id'] = insertedID;
+
+        //await db.insert('marksheets', newSheet);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('マークシートを保存しました！！！'),
+            behavior: SnackBarBehavior.floating,
+            margin: EdgeInsets.only(
+              bottom: 10,
+              left: 16,
+              right: 16,
+            ),
+          ),
+        );
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => Marksheet(
+              marksheetID: insertedID,
+            ),
+          ),
+        );
+      } else {
+        // 更新
+        final id = widget.existingData!['id'];
+        DatabaseHelper().updateMarksheet(id, newSheet);
+
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(
+            builder: (context) => Marksheet(
+              marksheetID: id,
+            ),
+          ),
+          (route) => false, // 戻る際に古い画面を削除
+        );
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('マークシートを更新しました！！！'),
+            behavior: SnackBarBehavior.floating,
+            margin: EdgeInsets.only(
+              bottom: 10,
+              left: 16,
+              right: 16,
+            ),
+          ),
+        );
+      }
+    }
   }
 
   //使用するマークをダイアログ上で選択
@@ -654,7 +693,26 @@ class _SettingScreen extends State<SettingScreen> {
             TextButton(
               onPressed: () {
                 setState(() {
+                  if(selectedMarkTypes.length > 0){
                   Navigator.pop(context);
+                  }else{
+                    showDialog(
+                          context: context,
+                          builder: (BuildContext context) {
+                            return AlertDialog(
+                              title: Text('マークがありません！'),
+                              content: Text('マークは１つ以上選択してください！'),
+                              actions: <Widget>[
+                                GestureDetector(
+                                    child: Text('はい'),
+                                    onTap: () {
+                                      Navigator.pop(context);
+                                    })
+                              ],
+                            );
+                          },
+                        );
+                  }
                 });
               },
               child: Text("OK"),

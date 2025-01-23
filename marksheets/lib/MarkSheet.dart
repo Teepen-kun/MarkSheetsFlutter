@@ -5,10 +5,10 @@ import 'SettingScreen.dart';
 import 'database_helper.dart';
 
 class Marksheet extends StatefulWidget {
-  const Marksheet(
-      {super.key,
-      required this.marksheetID,
-      });
+  const Marksheet({
+    super.key,
+    required this.marksheetID,
+  });
   final int marksheetID; // マークシートのid
 
   @override
@@ -33,11 +33,11 @@ class _Marksheet extends State<Marksheet> {
   late List<String> marks; // 選択したマークの種類
   late bool isMultipleSelectionAllowed; // 複数選択の可否
 
-
   //各回答ごとのマーク
   late List<List<String>> selectedMarks; //選択済みマークの位置
   late List<List<String>> answerList; //正解のマークの位置
   late List<int> questionResults; // 問題ごとの正解状態
+  late List<int> checkBoxes;
   late List<List<bool>> markColors;
   late List<String> sortedselectedMarks; //回答と正解が一致するかどうかを判定するために使う
   late List<String> sortedanswerList;
@@ -54,7 +54,6 @@ class _Marksheet extends State<Marksheet> {
     final data = await DatabaseHelper().getMarksheet(widget.marksheetID);
 
     if (data != null) {
-      
       setState(() {
         title = data['title'] as String;
         numCellRows = data['numCellRows'] as int;
@@ -66,6 +65,7 @@ class _Marksheet extends State<Marksheet> {
 
         remainingTime = timelimit;
         questionResults = List.filled(numCellRows, 1);
+        checkBoxes = List.filled(numCellRows, 0);
         selectedMarks = List.generate(numCellRows, (_) => []);
         answerList = List.generate(numCellRows, (_) => []);
         markColors = List.generate(
@@ -75,18 +75,15 @@ class _Marksheet extends State<Marksheet> {
         sortedselectedMarks = List.filled(numCellRows, '');
         sortedanswerList = List.filled(numCellRows, '');
       });
-
       getAnswer(widget.marksheetID);
       getCorrectAnswer(widget.marksheetID);
+      getCheckBoxes(widget.marksheetID);
       isInitialized = true;
     } else {
       // データが見つからない場合のエラー処理
       print('Marksheet with ID ${widget.marksheetID} not found.');
     }
   }
-
-
-  
 
   // hh:mm:ssのフォーマットに変換
   String formatTime(int seconds) {
@@ -166,7 +163,7 @@ class _Marksheet extends State<Marksheet> {
   Widget buildMarkBox(int indexCellRow) {
     return Wrap(
       spacing: 4.0,
-      runSpacing: 2.0,
+      runSpacing: 4.0,
       alignment: WrapAlignment.center,
       children: List.generate(marks.length, (index) {
         String mark = marks[index]; //タップしたマーク
@@ -204,9 +201,8 @@ class _Marksheet extends State<Marksheet> {
                       ? selectedMarks[indexCellRow].remove(mark)
                       : selectedMarks[indexCellRow].add(mark);
                   if (selectedMarks[indexCellRow].length > 1) {
-                    markColors[indexCellRow][marks.indexWhere(
-                        (element) =>
-                            element == selectedMarks[indexCellRow][0])] = false;
+                    markColors[indexCellRow][marks.indexWhere((element) =>
+                        element == selectedMarks[indexCellRow][0])] = false;
                     print(marks.indexWhere((element) =>
                         element == selectedMarks[indexCellRow][0]));
                     selectedMarks[indexCellRow].removeAt(0);
@@ -239,8 +235,8 @@ class _Marksheet extends State<Marksheet> {
             }
           },
           child: Container(
-            width: 32,
-            height: 32,
+            width: 34,
+            height: 34,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               border: Border.all(
@@ -258,7 +254,7 @@ class _Marksheet extends State<Marksheet> {
               child: Text(
                 '${marks[index]}',
                 style: const TextStyle(
-                    fontSize: 15,
+                    fontSize: 18,
                     color: Colors.black87,
                     fontWeight: FontWeight.bold),
               ),
@@ -275,13 +271,12 @@ class _Marksheet extends State<Marksheet> {
       for (int i = 0; i < numCellRows; i++) {
         bool isAnswered = selectedMarks[i].isNotEmpty;
         bool isQuestionCorrect = sortedselectedMarks[i] == sortedanswerList[i];
-        if(!isAnswered){
-          questionResults[i] = 2; //無回答なら2
-        }else if(isAnswered && !isQuestionCorrect){
+        if (!isAnswered || checkBoxes[i] == 1) {
+          questionResults[i] = 2; //無回答かチェック付きなら2
+        } else if (isAnswered && !isQuestionCorrect) {
           questionResults[i] = 1; //解答しているが不正解なら1
-        }else if(isAnswered && isQuestionCorrect){
+        } else if (isAnswered && isQuestionCorrect) {
           questionResults[i] = 0; //正解なら0
-          
         }
         nomarksCount = questionResults.where((result) => result == 2).length;
         correctCount = questionResults.where((result) => result == 0).length;
@@ -294,11 +289,11 @@ class _Marksheet extends State<Marksheet> {
   Widget buildQuestionNumber(int index) {
     Color bgColor = Colors.red;
 
-    if(questionResults[index] == 0){
+    if (questionResults[index] == 0) {
       bgColor = Colors.green; // 正解の場合は緑
-    }else if(questionResults[index] == 1){
+    } else if (questionResults[index] == 1) {
       bgColor = Colors.red; // 不正解の場合は赤
-    }else if(questionResults[index] == 2){
+    } else if (questionResults[index] == 2) {
       bgColor = Colors.yellow; //無回答は黄色
     }
 
@@ -310,7 +305,7 @@ class _Marksheet extends State<Marksheet> {
         child: Text(
           '${index + 1}',
           style: const TextStyle(
-            fontSize: 12,
+            fontSize: 14,
             color: Colors.black,
             fontWeight: FontWeight.bold,
           ),
@@ -326,29 +321,22 @@ class _Marksheet extends State<Marksheet> {
         .join(';');
     print("Saving answers: $answers"); // デバッグログを追加
 
-    final answerdata = {'marksheet_id': widget.marksheetID, 'answer': answers};
-    if (await DatabaseHelper.instance.doesAnswerExist(marksheetId)) {
-      // データが存在すれば更新
-      final updateCount =
-          await DatabaseHelper.instance.updateAnswer(marksheetId, answerdata);
-      print("Update count: $updateCount"); // デバッグログ
-      print("Updated existing answer in database.");
-    } else {
-      // データが存在しなければ挿入
-      await DatabaseHelper.instance.insertAnswer(answerdata);
-      print("Inserted new answer into database.");
-    }
+    final answerdata = {
+      'createdAt': DateTime.now().toIso8601String(),
+      'answers': answers
+    };
+
+    await DatabaseHelper.instance.updateMarksheet(marksheetId, answerdata);
   }
 
 //DBから取得
   Future<void> getAnswer(int marksheetId) async {
     final result = await DatabaseHelper.instance.getAnswer(marksheetId);
     print("Loaded result: $result"); // デバッグログを追加
-    if (result.isNotEmpty) {
+    if (result != null) {
       // 取得したデータを復元
-      String encodedAnswers = result.first['answer'];
-      print("Encoded answers: $encodedAnswers"); // デバッグログを追加
-      selectedMarks = encodedAnswers
+      print("Loaded answers: $result"); // デバッグログを追加
+      selectedMarks = result
           .split(';')
           .map((subList) => subList
               .split(',')
@@ -367,8 +355,7 @@ class _Marksheet extends State<Marksheet> {
       for (int row = 0; row < selectedMarks.length; row++) {
         sortedselectedMarks[row] = marksSorting(selectedMarks[row]);
         for (int index = 0; index < marks.length; index++) {
-          markColors[row][index] =
-              selectedMarks[row].contains(marks[index]);
+          markColors[row][index] = selectedMarks[row].contains(marks[index]);
         }
       }
     } else {
@@ -388,31 +375,20 @@ class _Marksheet extends State<Marksheet> {
     print("Saving answers: $correct_answers"); // デバッグログを追加
 
     final answerdata = {
-      'marksheet_id': widget.marksheetID,
-      'correct_answer': correct_answers
+      'createdAt': DateTime.now().toIso8601String(),
+      'correctAnswers': correct_answers
     };
-    if (await DatabaseHelper.instance.doesCorrectAnswerExist(marksheetId)) {
-      // データが存在すれば更新
-      final updateCount = await DatabaseHelper.instance
-          .updateCorrectAnswer(marksheetId, answerdata);
-      print("Update count: $updateCount"); // デバッグログ
-      print("Updated existing answer in database.");
-    } else {
-      // データが存在しなければ挿入
-      await DatabaseHelper.instance.insertCorrectAnswer(answerdata);
-      print("Inserted new answer into database.");
-    }
+    await DatabaseHelper.instance.updateMarksheet(marksheetId, answerdata);
   }
 
 //正解をDBから取得
   Future<void> getCorrectAnswer(int marksheetId) async {
     final result = await DatabaseHelper.instance.getCorrectAnswer(marksheetId);
     print("Loaded result: $result"); // デバッグログを追加
-    if (result.isNotEmpty) {
+    if (result != null) {
       // 取得したデータを復元
-      String encodedCorrectAnswers = result.first['correct_answer'];
-      print("Encoded Correctanswers: $encodedCorrectAnswers"); // デバッグログを追加
-      answerList = encodedCorrectAnswers
+      print("Loaded Correctanswers: $result"); // デバッグログを追加
+      answerList = result
           .split(';')
           .map((subList) => subList
               .split(',')
@@ -437,6 +413,40 @@ class _Marksheet extends State<Marksheet> {
       answerList = List.generate(numCellRows, (_) => []);
     }
     setState(() {}); // UI更新
+  }
+  //チェックボックスを保存
+  Future<void> saveCheckBoxes(int marksheetId) async {
+    String checks = checkBoxes.map<String>((int check) => check.toString()).join(',');
+    print("Saving answers: $checks"); // デバッグログを追加
+
+    final answerdata = {
+      'createdAt': DateTime.now().toIso8601String(),
+      'checkbox': checks
+    };
+
+    await DatabaseHelper.instance.updateMarksheet(marksheetId, answerdata);
+  }
+
+  Future<void> getCheckBoxes(int marksheetId) async {
+    final result = await DatabaseHelper.instance.getCheckBoxes(marksheetId);
+    
+    if (result != null) {
+      // 取得したデータを復元
+      print("Loaded answers: $result"); // デバッグログを追加
+      checkBoxes = result.split(',').map(int.parse).toList();
+
+      int minRows = numCellRows;
+      checkBoxes = checkBoxes.take(minRows).toList();
+
+      while (checkBoxes.length < numCellRows) {
+        checkBoxes.add(0);
+      }
+      
+    } else {
+      // データが存在しない場合の処理（例: 初期化）
+      print("No data found for marksheetId: $marksheetId"); // デバッグログを追加
+      checkBoxes = List.filled(numCellRows, 0);
+    }
   }
 
   String marksSorting(List<String> list) {
@@ -547,14 +557,12 @@ class _Marksheet extends State<Marksheet> {
                       ),
                       SimpleDialogOption(
                         onPressed: () {
-                          selectedMarks =
-                              List.generate(numCellRows, (_) => []);
+                          selectedMarks = List.generate(numCellRows, (_) => []);
                           markColors = List.generate(
                               numCellRows,
                               (indexCellRows) =>
                                   List.filled(marks.length, false));
-                          questionResults =
-                              List.filled(numCellRows, 1);
+                          questionResults = List.filled(numCellRows, 1);
                           setState(() {});
                           Navigator.pop(context);
                         },
@@ -565,10 +573,8 @@ class _Marksheet extends State<Marksheet> {
                       ),
                       SimpleDialogOption(
                         onPressed: () {
-                          answerList =
-                              List.generate(numCellRows, (_) => []);
-                          questionResults =
-                              List.filled(numCellRows, 1);
+                          answerList = List.generate(numCellRows, (_) => []);
+                          questionResults = List.filled(numCellRows, 1);
                           setState(() {});
                           Navigator.pop(context);
                         },
@@ -606,13 +612,29 @@ class _Marksheet extends State<Marksheet> {
     );
   }
 
+  Widget buildcheckBox(index) {
+    return Center(
+      child: SizedBox(
+        //width: 10,
+        child: Checkbox(
+          value: checkBoxes[index] == 1 ? true : false,
+          onChanged: (bool? value) {
+            setState(() {
+              checkBoxes[index] = checkBoxes[index] == 1 ? 0 : 1;
+              saveCheckBoxes(widget.marksheetID);
+            });
+          },
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-
     if (!isInitialized) {
       return const Center(child: CircularProgressIndicator());
     }
-    
+
     return PopScope(
       canPop: false,
       child: Scaffold(
@@ -621,7 +643,7 @@ class _Marksheet extends State<Marksheet> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(
-                width: 180,
+                width: 150,
                 child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Text(
@@ -632,8 +654,7 @@ class _Marksheet extends State<Marksheet> {
                   ),
                 ),
               ),
-              const SizedBox(width: 20),
-              //残り時間
+               //残り時間
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -700,35 +721,35 @@ class _Marksheet extends State<Marksheet> {
             IconButton(
               icon: Icon(Icons.settings), // 設定アイコン
               onPressed: () async {
-                  try {
-                    // データベースから現在のマークシート情報を取得
-                    final marksheetData =
-                        await DatabaseHelper().getMarksheet(widget.marksheetID);
-      
-                    // SettingScreen に遷移
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => SettingScreen(
-                          isNew: false,
-                          existingData: marksheetData,
-                        ),
+                try {
+                  // データベースから現在のマークシート情報を取得
+                  final marksheetData =
+                      await DatabaseHelper().getMarksheet(widget.marksheetID);
+
+                  // SettingScreen に遷移
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => SettingScreen(
+                        isNew: false,
+                        existingData: marksheetData,
                       ),
-                    );
-                  } catch (e) {
-                    // エラー処理
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('エラー: データを取得できませんでした'),
-                        behavior: SnackBarBehavior.floating,
-                        margin: EdgeInsets.only(
-                          bottom: 10,
-                          left: 16,
-                          right: 16,
-                        ),
+                    ),
+                  );
+                } catch (e) {
+                  // エラー処理
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('エラー: データを取得できませんでした'),
+                      behavior: SnackBarBehavior.floating,
+                      margin: EdgeInsets.only(
+                        bottom: 10,
+                        left: 16,
+                        right: 16,
                       ),
-                    );
-                  }
+                    ),
+                  );
+                }
               },
             ),
           ],
@@ -750,15 +771,22 @@ class _Marksheet extends State<Marksheet> {
                           BorderSide(color: Colors.grey, width: 2.0),
                       verticalInside: BorderSide(color: Colors.grey, width: 2),
                       top: BorderSide(
-                          color: Theme.of(context).colorScheme.primary, width: 3),
+                          color: Theme.of(context).colorScheme.primary,
+                          width: 3),
                       bottom: BorderSide(
-                          color: Theme.of(context).colorScheme.primary, width: 3),
+                          color: Theme.of(context).colorScheme.primary,
+                          width: 3),
                       left: BorderSide(
-                          color: Theme.of(context).colorScheme.primary, width: 3),
+                          color: Theme.of(context).colorScheme.primary,
+                          width: 3),
                       right: BorderSide(
-                          color: Theme.of(context).colorScheme.primary, width: 3),
+                          color: Theme.of(context).colorScheme.primary,
+                          width: 3),
                     ),
-                    columnWidths: const {0: FixedColumnWidth(30)},
+                    columnWidths: const {
+                      0: FixedColumnWidth(35),
+                      2: FixedColumnWidth(35),
+                    },
                     children: List.generate(numCellRows, (index) {
                       final Color rowColor = (index % 2 == 0)
                           ? Colors.grey[200]!
@@ -766,7 +794,7 @@ class _Marksheet extends State<Marksheet> {
                       return TableRow(
                         decoration: BoxDecoration(
                           color: rowColor,
-      
+
                           //border: Border.all(width: 0.1, color: Colors.yellow),
                         ),
                         children: [
@@ -776,16 +804,25 @@ class _Marksheet extends State<Marksheet> {
                                 TableCellVerticalAlignment.fill, // 行全体の高さに合わせる
                             child: buildQuestionNumber(index),
                           ),
+                          
                           // マークが並んだセル
                           TableCell(
                             verticalAlignment: TableCellVerticalAlignment
                                 .middle, //セルの位置をちょうど真ん中に
                             child: Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 8.0),
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 8.0),
                               child: Center(
                                 child: buildMarkBox(index),
                               ),
                             ),
+                          ),
+
+                          //チェックボックス
+                          TableCell(
+                            verticalAlignment:
+                                TableCellVerticalAlignment.fill, 
+                            child: buildcheckBox(index),
                           ),
                         ],
                       );
@@ -794,13 +831,13 @@ class _Marksheet extends State<Marksheet> {
                 ),
               ),
             ),
-      
+
             // 点数表示用のContainer
             if (isScoringMode)
               Container(
                 color: Theme.of(context).colorScheme.primary,
-                padding:
-                    const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
+                padding: const EdgeInsets.symmetric(
+                    vertical: 12.0, horizontal: 16.0),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [

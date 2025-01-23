@@ -5,6 +5,7 @@ import 'MarkSheet.dart';
 import 'SettingScreen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:intl/intl.dart';
 
 class HomePage extends StatefulWidget {
   @override
@@ -293,7 +294,7 @@ class _HomePageState extends State<HomePage> {
       ),
       child: Stack(
         children: [
-          //シートの詳細
+          //シートの詳細,
           CardLayout(sheet),
           //三点リーダ
           Positioned(
@@ -341,8 +342,13 @@ class _HomePageState extends State<HomePage> {
     final score = sheet['score'];
     final totalQuestions = sheet['numCellRows'];
     final title = sheet['title'];
+    final updatedAt = sheet['createdAt'];
     final displayScore = score ?? 0; //scoreがnullなら0
     final isNullScore = score == null;
+
+    final formattedDate = updatedAt != null
+        ? DateFormat('yyyy/MM/dd HH:mm').format(DateTime.parse(updatedAt))
+        : '日時未設定';
 
     final completedRatio =
         totalQuestions > 0 ? displayScore / totalQuestions : 0.1;
@@ -352,84 +358,157 @@ class _HomePageState extends State<HomePage> {
     if (_isViewSelected[0] && !_isViewSelected[1]) {
       return Column(
         children: [
-          const SizedBox(height: 20),
-          ListTile(
-            title: Text(
-              title,
-              style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black),
-              overflow: TextOverflow.fade,
-              maxLines: 2,
-            ),
-          ),
-          const SizedBox(height: 20),
-          SizedBox(
-            height: 120,
-            width: 120,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                // 円グラフ
-                PieChart(
-                  PieChartData(
-                    startDegreeOffset: 270,
-                    sections: [
-                      if (displayScore > 0)
-                        PieChartSectionData(
-                          value: completedRatio,
-                          title: '',
-                          color: Theme.of(context).colorScheme.primary, //正解の割合
-                          radius: 25,
-                        ),
-                      if (displayScore < totalQuestions)
-                        PieChartSectionData(
-                            value: remainingRatio, //不正解の割合
-                            title: '',
-                            color: Colors.grey,
-                            radius: 25),
+          Padding(
+            padding: const EdgeInsets.only(top: 8.0, right: 10),
+            child: SizedBox(
+              height: 80,
+              child: ListTile(
+                title: Tooltip(
+                  message: title,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 更新日時
+                      Text('$formattedDate',
+                          style: const TextStyle(
+                            fontSize: 12,
+                          ),
+                          textAlign: TextAlign.left),
+                      Text(
+                        title,
+                        style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black),
+                        overflow: TextOverflow.fade,
+                        maxLines: 2,
+                      ),
                     ],
-                    sectionsSpace: 0,
-                    centerSpaceRadius: 40,
                   ),
                 ),
-                // 円グラフの中心に表示するテキスト
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      isNullScore ? '-' : displayScore.toString(),
-                      style: const TextStyle(
-                          fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Container(
+            height: 120,
+            width: 120,
+            child: Padding(
+              padding: EdgeInsets.only(top: 25),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  // 円グラフ
+                  PieChart(
+                    PieChartData(
+                      startDegreeOffset: 270,
+                      sections: [
+                        if (displayScore > 0)
+                          PieChartSectionData(
+                            value: completedRatio,
+                            title: '',
+                            color:
+                                Theme.of(context).colorScheme.primary, //正解の割合
+                            radius: 25,
+                          ),
+                        if (displayScore < totalQuestions)
+                          PieChartSectionData(
+                              value: remainingRatio, //不正解の割合
+                              title: '',
+                              color: Colors.grey,
+                              radius: 25),
+                      ],
+                      sectionsSpace: 0,
+                      centerSpaceRadius: 40,
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '/ $totalQuestions',
-                      style: const TextStyle(fontSize: 14, color: Colors.grey),
-                    ),
-                  ],
-                ),
-              ],
+                  ),
+                  // 円グラフの中心に表示するテキスト
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        isNullScore ? '-' : displayScore.toString(),
+                        style: const TextStyle(
+                            fontSize: 20, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '/ $totalQuestions',
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ],
       );
     } else if (_isViewSelected[1] && !_isViewSelected[0]) {
       return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ListTile(
-            title: Text(
-              sheet['title'],
-              style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black),
-              overflow: TextOverflow.fade,
-              maxLines: 2,
+          Padding(
+            padding: const EdgeInsets.only(right: 50),
+            child: ListTile(
+              title: Tooltip(
+                message: title,
+                child: Text(
+                  title,
+                  style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                ),
+              ),
             ),
-            subtitle: Text('問題数: ${sheet['numCellRows']}'),
           ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Padding(
+                // 更新日時
+                padding: const EdgeInsets.only(left: 10),
+                child: Text('$formattedDate',
+                    style: const TextStyle(
+                      fontSize: 12,
+                    ),
+                    textAlign: TextAlign.left),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(right:10.0),
+                child: Row(
+                  children: [
+                    Text(
+                      isNullScore ? '-' : displayScore.toString(),
+                      style: const TextStyle(
+                          fontSize: 20, fontWeight: FontWeight.bold),
+                    ),
+                    SizedBox(width: 5),                    Text(
+                      '/ $totalQuestions',
+                      style: const TextStyle(
+                        fontSize: 14,
+                      ),
+                    )
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Padding(
+            padding: const EdgeInsets.only(left: 10, right: 10),
+            child: LinearProgressIndicator(
+              value: completedRatio,
+              minHeight: 15,
+              backgroundColor: Colors.grey[300],
+              valueColor: AlwaysStoppedAnimation<Color>(
+                  Theme.of(context).colorScheme.primary),
+            ),
+          ),
+          const SizedBox(height: 10),
         ],
       );
     } else {

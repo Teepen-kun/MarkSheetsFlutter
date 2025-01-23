@@ -38,7 +38,6 @@ class SecretCode{
 
   // リストの内容を比較する関数
   bool _listEquals(List<int> list1, List<int> list2) {
-    print('${list1} and ${list2}');
     for (int i = 0; i < 4; i++) {
       if (list1[i] != list2[i]) return false;
     }

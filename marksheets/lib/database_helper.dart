@@ -48,25 +48,13 @@ class DatabaseHelper {
         timelimit INTEGER NOT NULL,
         isMultipleSelectionAllowed INTEGER NOT NULL,
         createdAt TEXT NOT NULL,
-        score INTEGER
+        score INTEGER,
+        answers TEXT,
+        correctAnswers TEXT,
+        checkbox TEXT
       )
     ''');
 
-    // 回答データのテーブル作成
-    await db.execute('''
-      CREATE TABLE answers (
-        marksheet_id INTEGER NOT NULL,
-        answer TEXT NOT NULL
-      )
-    ''');
-
-    // 正解データのテーブル作成
-    await db.execute('''
-      CREATE TABLE correct_answers (
-        marksheet_id INTEGER PRIMARY KEY,
-        correct_answer TEXT NOT NULL
-      )
-  ''');
   }
 
 //Marksheetのリストを表示
@@ -108,6 +96,26 @@ Future<void> updateScore(int id, int? score) async {
   );
 }
 
+Future<void> updateAnswer(int id, String? answers) async {
+  final db = await database;
+  await db.update(
+    'marksheets',
+    {'answers': answers},
+    where: 'id = ?',
+    whereArgs: [id],
+  );
+}
+
+Future<void> updateCorrectAnswer(int id, String? correctAnswers) async {
+  final db = await database;
+  await db.update(
+    'marksheets',
+    {'correctAnswers': correctAnswers},
+    where: 'id = ?',
+    whereArgs: [id],
+  );
+}
+
   Future<int> deleteMarksheet(int id) async {
   final db = await database;
   return await db.delete(
@@ -137,91 +145,55 @@ Future<void> updateScore(int id, int? score) async {
 
 
 
-  // 回答データ関連の操作
-  Future<int> insertAnswer(Map<String, dynamic> answerData) async {
-    final db = await database;
-    
-    return await db.insert('answers', answerData);
-  }
-
-
-  Future<int> updateAnswer(int marksheetId, Map<String, dynamic> updatedData) async {
-    final db = await database; 
-    
-    
-    return await db.update(
-    'answers',
-    updatedData,
-    where: 'marksheet_id = ?',
-    whereArgs: [marksheetId],
-    );
-
-}
-  Future<List<Map<String, dynamic>>>getAnswer(int marksheetId) async{
+  Future<String?>getAnswer(int marksheetId) async{
   final db = await database;
 
-    List<Map<String, dynamic>> result = await db.query(
-    'answers',
-    where: 'marksheet_id = ?',
+    final result = await db.query(
+    'marksheets',
+    columns: ['answers'],
+    where: 'id = ?',
     whereArgs: [marksheetId],
   );
   print("getAnswer result: $result");
-  return result;
-}
-
-Future<bool> doesAnswerExist(int marksheetId) async {
-  final db = await database;
-  final result = await db.query(
-    'answers',
-    where: 'marksheet_id = ?',
-    whereArgs: [marksheetId],
-  );
-  return result.isNotEmpty;
-}
-
-
-
-  // 正解データ関連の操作
-  Future<int> insertCorrectAnswer(Map<String, dynamic> answerData) async {
-    final db = await database;
-    print("Inserting data: $answerData"); // デバッグログ
-    return await db.insert('correct_answers', answerData);
+  if (result.isNotEmpty) {
+    return result.first['answers'] as String?;
+  } else {
+    return null;
   }
-
-
-  Future<int> updateCorrectAnswer(int marksheetId, Map<String, dynamic> updatedData) async {
-    final db = await database; 
-    print("Updating marksheet_id: $marksheetId"); // デバッグログ
-    print("Update data: $updatedData"); // デバッグログ
-    
-    return await db.update(
-    'correct_answers',
-    updatedData,
-    where: 'marksheet_id = ?',
-    whereArgs: [marksheetId],
-    );
-
 }
-  Future<List<Map<String, dynamic>>>getCorrectAnswer(int marksheetId) async{
+
+  Future<String?>getCorrectAnswer(int marksheetId) async{
   final db = await database;
 
     List<Map<String, dynamic>> result = await db.query(
-    'correct_answers',
-    where: 'marksheet_id = ?',
+    'marksheets',
+    columns: ['correctAnswers'],
+    where: 'id = ?',
     whereArgs: [marksheetId],
   );
   print("getAnswer result: $result");
-  return result;
+  if (result.isNotEmpty) {
+    return result.first['correctAnswers'] as String?;
+  } else {
+    return null;
+  }
 }
 
-Future<bool> doesCorrectAnswerExist(int marksheetId) async {
+Future<String?> getCheckBoxes(int marksheetId) async{
   final db = await database;
-  final result = await db.query(
-    'correct_answers',
-    where: 'marksheet_id = ?',
+
+    final result = await db.query(
+    'marksheets',
+    columns: ['checkbox'],
+    where: 'id = ?',
     whereArgs: [marksheetId],
   );
-  return result.isNotEmpty;
+  print("getcheckboxes result: $result");
+  if (result.isNotEmpty) {
+    return result.first['checkbox'] as String?;
+  } else {
+    return null;
+  }
 }
 
 }
