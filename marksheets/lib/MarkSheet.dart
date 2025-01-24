@@ -3,13 +3,14 @@ import 'dart:async';
 import 'HomeScreen.dart';
 import 'SettingScreen.dart';
 import 'database_helper.dart';
+import 'package:share_plus/share_plus.dart';
 
 class Marksheet extends StatefulWidget {
   const Marksheet({
     super.key,
     required this.marksheetID,
   });
-  final int marksheetID; // マークシートのid
+  final String marksheetID; // マークシートのid
 
   @override
   State<Marksheet> createState() => _Marksheet();
@@ -315,7 +316,7 @@ class _Marksheet extends State<Marksheet> {
   }
 
   //DBに保存
-  Future<void> saveAnswer(int marksheetId) async {
+  Future<void> saveAnswer(String marksheetId) async {
     String answers = selectedMarks
         .map((subList) => subList.where((mark) => mark.isNotEmpty).join(','))
         .join(';');
@@ -330,7 +331,7 @@ class _Marksheet extends State<Marksheet> {
   }
 
 //DBから取得
-  Future<void> getAnswer(int marksheetId) async {
+  Future<void> getAnswer(String marksheetId) async {
     final result = await DatabaseHelper.instance.getAnswer(marksheetId);
     print("Loaded result: $result"); // デバッグログを追加
     if (result != null) {
@@ -368,7 +369,7 @@ class _Marksheet extends State<Marksheet> {
   }
 
   //正解をDBに保存
-  Future<void> saveCorrectAnswer(int marksheetId) async {
+  Future<void> saveCorrectAnswer(String marksheetId) async {
     String correct_answers = answerList
         .map((subList) => subList.where((mark) => mark.isNotEmpty).join(','))
         .join(';');
@@ -382,7 +383,7 @@ class _Marksheet extends State<Marksheet> {
   }
 
 //正解をDBから取得
-  Future<void> getCorrectAnswer(int marksheetId) async {
+  Future<void> getCorrectAnswer(String marksheetId) async {
     final result = await DatabaseHelper.instance.getCorrectAnswer(marksheetId);
     print("Loaded result: $result"); // デバッグログを追加
     if (result != null) {
@@ -414,9 +415,11 @@ class _Marksheet extends State<Marksheet> {
     }
     setState(() {}); // UI更新
   }
+
   //チェックボックスを保存
-  Future<void> saveCheckBoxes(int marksheetId) async {
-    String checks = checkBoxes.map<String>((int check) => check.toString()).join(',');
+  Future<void> saveCheckBoxes(String marksheetId) async {
+    String checks =
+        checkBoxes.map<String>((int check) => check.toString()).join(',');
     print("Saving answers: $checks"); // デバッグログを追加
 
     final answerdata = {
@@ -427,9 +430,9 @@ class _Marksheet extends State<Marksheet> {
     await DatabaseHelper.instance.updateMarksheet(marksheetId, answerdata);
   }
 
-  Future<void> getCheckBoxes(int marksheetId) async {
+  Future<void> getCheckBoxes(String marksheetId) async {
     final result = await DatabaseHelper.instance.getCheckBoxes(marksheetId);
-    
+
     if (result != null) {
       // 取得したデータを復元
       print("Loaded answers: $result"); // デバッグログを追加
@@ -441,11 +444,21 @@ class _Marksheet extends State<Marksheet> {
       while (checkBoxes.length < numCellRows) {
         checkBoxes.add(0);
       }
-      
     } else {
       // データが存在しない場合の処理（例: 初期化）
       print("No data found for marksheetId: $marksheetId"); // デバッグログを追加
       checkBoxes = List.filled(numCellRows, 0);
+    }
+  }
+
+  void shareMarksheet(String id) async {
+    try {
+      final file = await DatabaseHelper().exportMarksheet(widget.marksheetID);
+      print('File created at: ${file.path}');
+      await Share.shareXFiles([XFile('${file.path}')], text: 'マークシートを共有します！');
+    } catch (e) {
+      // エラー処理
+      print('Error sharing marksheet: $e');
     }
   }
 
@@ -621,6 +634,7 @@ class _Marksheet extends State<Marksheet> {
           onChanged: (bool? value) {
             setState(() {
               checkBoxes[index] = checkBoxes[index] == 1 ? 0 : 1;
+              gradeQuestions();
               saveCheckBoxes(widget.marksheetID);
             });
           },
@@ -643,18 +657,18 @@ class _Marksheet extends State<Marksheet> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(
-                width: 150,
+                width: 120,
                 child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Text(
                     title,
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     overflow: TextOverflow.visible,
                     maxLines: 1,
                   ),
                 ),
               ),
-               //残り時間
+              //残り時間
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -718,6 +732,36 @@ class _Marksheet extends State<Marksheet> {
             },
           ),
           actions: [
+            IconButton(
+              icon: Icon(Icons.share),
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (BuildContext context) {
+                    return AlertDialog(
+                      title: Text('現在のデータを共有しますか？'),
+                      
+                      actions: <Widget>[
+                        GestureDetector(
+                          child: Text('いいえ'),
+                          onTap: () {
+                            Navigator.pop(context);
+                          },
+                        ),
+                        SizedBox(),
+                        GestureDetector(
+                            child: Text('はい'),
+                            onTap: () {
+                              shareMarksheet(widget.marksheetID);
+                              Navigator.pop(context);
+                            })
+                      ],
+                    );
+                  },
+                );
+                
+              },
+            ),
             IconButton(
               icon: Icon(Icons.settings), // 設定アイコン
               onPressed: () async {
@@ -804,7 +848,7 @@ class _Marksheet extends State<Marksheet> {
                                 TableCellVerticalAlignment.fill, // 行全体の高さに合わせる
                             child: buildQuestionNumber(index),
                           ),
-                          
+
                           // マークが並んだセル
                           TableCell(
                             verticalAlignment: TableCellVerticalAlignment
@@ -820,8 +864,7 @@ class _Marksheet extends State<Marksheet> {
 
                           //チェックボックス
                           TableCell(
-                            verticalAlignment:
-                                TableCellVerticalAlignment.fill, 
+                            verticalAlignment: TableCellVerticalAlignment.fill,
                             child: buildcheckBox(index),
                           ),
                         ],

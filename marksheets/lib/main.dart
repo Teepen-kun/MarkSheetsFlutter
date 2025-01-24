@@ -5,6 +5,8 @@ import 'dart:async';
 import 'database_helper.dart';
 import 'SQLDebug.dart';
 import 'package:sqflite/sqflite.dart';
+import 'package:uuid/uuid.dart';
+
 
 
 
@@ -23,10 +25,13 @@ void main() async {
     // デバッグモードでのみデータベースを削除
     await deleteDatabaseFile();
     print('データベースを削除しました。');
+    final uuid = Uuid(); 
+    final String id = uuid.v4();
 
 
   // サンプルデータ挿入
   await dbHelper.insertMarksheet({
+    'id':id,
     'title': 'Sample Sheet',
     'numCellRows': 10,
     'markTypes': 'A,B,C,D',

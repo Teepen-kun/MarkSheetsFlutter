@@ -1,6 +1,11 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart'; 
 import 'dart:async';
+import 'dart:convert'; 
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
+import 'package:uuid/uuid.dart';
+
 
 class DatabaseHelper {
   static final DatabaseHelper _instance = DatabaseHelper._internal();
@@ -40,7 +45,7 @@ class DatabaseHelper {
     // マークシート設定のテーブル作成
     await db.execute('''
       CREATE TABLE marksheets (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id TEXT PRIMARY KEY,
         title TEXT NOT NULL,
         numCellRows INTEGER NOT NULL,
         markTypes TEXT NOT NULL,
@@ -76,7 +81,7 @@ class DatabaseHelper {
   return await db.insert('marksheets', marksheet);
 }
 
-  Future<int> updateMarksheet(int id,  updatedData) async {
+  Future<int> updateMarksheet(String id,  updatedData) async {
   final db = await database;
   return await db.update(
     'marksheets',
@@ -86,7 +91,7 @@ class DatabaseHelper {
   );
 }
 
-Future<void> updateScore(int id, int? score) async {
+Future<void> updateScore(String id, int? score) async {
   final db = await database;
   await db.update(
     'marksheets',
@@ -96,7 +101,7 @@ Future<void> updateScore(int id, int? score) async {
   );
 }
 
-Future<void> updateAnswer(int id, String? answers) async {
+Future<void> updateAnswer(String id, String? answers) async {
   final db = await database;
   await db.update(
     'marksheets',
@@ -106,7 +111,7 @@ Future<void> updateAnswer(int id, String? answers) async {
   );
 }
 
-Future<void> updateCorrectAnswer(int id, String? correctAnswers) async {
+Future<void> updateCorrectAnswer(String id, String? correctAnswers) async {
   final db = await database;
   await db.update(
     'marksheets',
@@ -116,7 +121,7 @@ Future<void> updateCorrectAnswer(int id, String? correctAnswers) async {
   );
 }
 
-  Future<int> deleteMarksheet(int id) async {
+  Future<int> deleteMarksheet(String id) async {
   final db = await database;
   return await db.delete(
     'marksheets',
@@ -125,7 +130,7 @@ Future<void> updateCorrectAnswer(int id, String? correctAnswers) async {
   );
 }  
 
-  Future<Map<String, dynamic>?> getMarksheet(int id) async {
+  Future<Map<String, dynamic>?> getMarksheet(String id) async {
   final db = await database;
 
   // 特定のIDのマークシートを取得
@@ -145,7 +150,7 @@ Future<void> updateCorrectAnswer(int id, String? correctAnswers) async {
 
 
 
-  Future<String?>getAnswer(int marksheetId) async{
+  Future<String?>getAnswer(String marksheetId) async{
   final db = await database;
 
     final result = await db.query(
@@ -162,7 +167,7 @@ Future<void> updateCorrectAnswer(int id, String? correctAnswers) async {
   }
 }
 
-  Future<String?>getCorrectAnswer(int marksheetId) async{
+  Future<String?>getCorrectAnswer(String marksheetId) async{
   final db = await database;
 
     List<Map<String, dynamic>> result = await db.query(
@@ -179,7 +184,7 @@ Future<void> updateCorrectAnswer(int id, String? correctAnswers) async {
   }
 }
 
-Future<String?> getCheckBoxes(int marksheetId) async{
+Future<String?> getCheckBoxes(String marksheetId) async{
   final db = await database;
 
     final result = await db.query(
@@ -194,6 +199,54 @@ Future<String?> getCheckBoxes(int marksheetId) async{
   } else {
     return null;
   }
+}
+  //マークシートの書き出し
+  Future<File> exportMarksheet(String id) async {
+    try {
+      final db = await database;
+
+      final result = await db.query(
+        'marksheets',
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+
+      if (result.isEmpty) {
+        throw Exception('Marksheet with ID $id not found');
+      }
+
+      final marksheet = result.first;
+
+      // Temporary Directoryを取得
+      final tempDir = await getTemporaryDirectory();
+
+      // ファイル名を生成
+      final fileName = '${marksheet["title"]}.json';
+      final filePath = '${tempDir.path}/$fileName';
+
+      // データをJSON文字列に変換してファイルに書き込む
+      final file = File(filePath);
+      final jsonData = jsonEncode(marksheet);
+      await file.writeAsString(jsonData);
+
+      return file;
+    } catch (e) {
+      print('Error exporting marksheet: $e');
+      throw Exception('Failed to export marksheet');
+    }
+  }
+  
+  //読み込み
+  Future<String> importMarksheet(Map<String, dynamic> data) async {
+  final db = await database;
+
+  //新しいUUIDを生成
+  data['id'] = const Uuid().v4();
+
+  await db.insert('marksheets', data);
+
+  return data['id'];
+  
 }
 
 }

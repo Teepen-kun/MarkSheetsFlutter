@@ -5,6 +5,7 @@ import 'MarkSheet.dart';
 import 'package:numberpicker/numberpicker.dart';
 import 'templates.dart';
 import 'database_helper.dart';
+import 'package:uuid/uuid.dart';
 
 class SettingScreen extends StatefulWidget {
   final bool isNew; // 新規作成か更新か
@@ -448,8 +449,13 @@ class _SettingScreen extends State<SettingScreen> {
       }
 
       final db = await DatabaseHelper.instance.database;
+      if (widget.isNew) {
+        //新規作成
+      final uuid = Uuid(); 
+      final String id = uuid.v4();
       // データベースに保存
       final newSheet = {
+        'id':id,
         'title': _marksheetnameController.text == ''
             ? '無題'
             : _marksheetnameController.text,
@@ -461,10 +467,8 @@ class _SettingScreen extends State<SettingScreen> {
         'createdAt': DateTime.now().toIso8601String(),
       };
 
-      if (widget.isNew) {
-        //新規作成
-        final insertedID = await DatabaseHelper().insertMarksheet(newSheet);
-        newSheet['id'] = insertedID;
+        await DatabaseHelper().insertMarksheet(newSheet);
+        
 
         //await db.insert('marksheets', newSheet);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -482,12 +486,23 @@ class _SettingScreen extends State<SettingScreen> {
           context,
           MaterialPageRoute(
             builder: (context) => Marksheet(
-              marksheetID: insertedID,
+              marksheetID: id,
             ),
           ),
         );
       } else {
         // 更新
+        final newSheet = {
+        'title': _marksheetnameController.text == ''
+            ? '無題'
+            : _marksheetnameController.text,
+        'numCellRows': finalizednumberOfQuestions,
+        'isTimeLimitEnabled': _isTimeLimitEnabled ? 1 : 0,
+        'timelimit': _TimeLimit,
+        'markTypes': selectedMarkTypes.join(','), // リストをカンマ区切りで保存
+        'isMultipleSelectionAllowed': _isMultipleSelectionAllowed ? 1 : 0,
+        'createdAt': DateTime.now().toIso8601String(),
+      };
         final id = widget.existingData!['id'];
         DatabaseHelper().updateMarksheet(id, newSheet);
 

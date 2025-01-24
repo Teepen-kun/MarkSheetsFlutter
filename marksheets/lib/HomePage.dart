@@ -46,7 +46,7 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  Widget deleteDialog(int id, String title) {
+  Widget deleteDialog(String id, String title) {
     return AlertDialog(
       title: Text('$titleを削除しますか？'),
       content: Text('回答データも削除されます'),
@@ -68,7 +68,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  void _deleteMarksheet(int id) async {
+  void _deleteMarksheet(String id) async {
     await DatabaseHelper().deleteMarksheet(id);
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -377,7 +377,7 @@ class _HomePageState extends State<HomePage> {
                       Text(
                         title,
                         style: const TextStyle(
-                            fontSize: 18,
+                            fontSize: 16,
                             fontWeight: FontWeight.bold,
                             color: Colors.black),
                         overflow: TextOverflow.fade,
@@ -394,7 +394,7 @@ class _HomePageState extends State<HomePage> {
             height: 120,
             width: 120,
             child: Padding(
-              padding: EdgeInsets.only(top: 25),
+              padding: EdgeInsets.only(top: 30),
               child: Stack(
                 alignment: Alignment.center,
                 children: [
