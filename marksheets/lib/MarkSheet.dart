@@ -576,7 +576,7 @@ class _Marksheet extends State<Marksheet> {
                               (indexCellRows) =>
                                   List.filled(marks.length, false));
                           questionResults = List.filled(numCellRows, 1);
-                          setState(() {});
+                          gradeQuestions();
                           Navigator.pop(context);
                         },
                         child: Text("・解答",
@@ -588,6 +588,7 @@ class _Marksheet extends State<Marksheet> {
                         onPressed: () {
                           answerList = List.generate(numCellRows, (_) => []);
                           questionResults = List.filled(numCellRows, 1);
+                          gradeQuestions();
                           setState(() {});
                           Navigator.pop(context);
                         },
@@ -596,6 +597,19 @@ class _Marksheet extends State<Marksheet> {
                                 color: Colors.black87,
                                 fontWeight: FontWeight.bold)),
                       ),
+                      SimpleDialogOption(
+                        onPressed: () {
+                          checkBoxes = List.filled(numCellRows, 0);   
+                          gradeQuestions();                       
+                          Navigator.pop(context);
+                        },
+                        child: Text("・チェックボックス",
+                            style: TextStyle(
+                                color: Colors.black87,
+                                fontWeight: FontWeight.bold)),
+                      ),
+
+                      
                     ],
                   );
                 },

@@ -286,6 +286,7 @@ class _HomePageState extends State<HomePage> {
   // カードのビルダー
   Widget _buildMarksheetCard(Map<String, dynamic> sheet) {
     return Card(
+      color: Colors.white,
       elevation: 4,
       shape: RoundedRectangleBorder(
         side:
@@ -373,7 +374,7 @@ class _HomePageState extends State<HomePage> {
                           style: const TextStyle(
                             fontSize: 12,
                           ),
-                          textAlign: TextAlign.left),
+                          ),
                       Text(
                         title,
                         style: const TextStyle(
